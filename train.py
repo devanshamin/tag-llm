@@ -1,11 +1,12 @@
-from typing import Literal
+from typing import Literal, Optional
+
 from jsonargparse import ArgumentParser, ActionConfigFile
 
-from tape.data.llm import LlmConnectorArgs
 from tape.data.lm_encoder import LmEncoderArgs
 from tape.data.dataset import GraphDataset
 from tape.model import NodeClassifierArgs
 from tape.trainer.gnn_trainer import GnnTrainerArgs, GnnTrainer
+from tape.data.llm.engine import LlmOnlineEngineArgs, LlmOfflineEngineArgs
 
 
 def get_parser() -> ArgumentParser:
@@ -18,7 +19,8 @@ def get_parser() -> ArgumentParser:
     parser.add_argument('--seed', type=int, default=42)
     parser.add_argument('--device', type=str, required=False)
     parser.add_argument('--lm_encoder', type=LmEncoderArgs)
-    parser.add_argument('--llm_connector', type=LlmConnectorArgs)
+    parser.add_argument('--llm_online_engine', type=Optional[LlmOnlineEngineArgs], default=None)
+    parser.add_argument('--llm_offline_engine', type=Optional[LlmOfflineEngineArgs], default=None)
     parser.add_argument('--gnn_model', type=NodeClassifierArgs)
     parser.add_argument('--gnn_trainer', type=GnnTrainerArgs)
 
@@ -35,7 +37,8 @@ if __name__ == '__main__':
         dataset_name=args.dataset,
         feature_type=args.feature_type,
         lm_encoder_args=args.lm_encoder,
-        llm_connector_args=args.llm_connector,
+        llm_online_engine_args=args.llm_online_engine,
+        llm_offline_engine_args=args.llm_offline_engine,
         device=args.device,
         cache_dir=args.cache_dir,
         seed=args.seed,

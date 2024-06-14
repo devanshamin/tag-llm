@@ -15,16 +15,16 @@ from tape.data.llm.engine import LlmEngine, LlmOnlineEngineArgs, LlmResponseMode
 
 class LlmOnlineEngine(LlmEngine):
     
-    def __init__(self, args: LlmOnlineEngineArgs):
+    def __init__(self, args: LlmOnlineEngineArgs, dataset_name: str) -> None:
         super().__init__(args)
         self.client = instructor.from_litellm(completion)
-        setup_cache(cache_dir=Path(args.cache_dir) / f'tape_llm_responses/{args.dataset_name.lower()}')
+        setup_cache(cache_dir=Path(args.cache_dir) / f'tape_llm_responses/{dataset_name.lower()}')
         self._response_model = None
     
     @abstractmethod
     def get_response_model(self) -> LlmResponseModel:
         pass
-    
+
     @property
     def response_model(self) -> LlmResponseModel:
         if self._response_model is None:
@@ -45,6 +45,7 @@ class LlmOnlineEngine(LlmEngine):
         while retries < max_retries:
             try:
                 response = self._get_response(
+                    model=self.args.model,
                     messages=messages,
                     response_model=self.response_model,
                     **self.args.sampling_kwargs

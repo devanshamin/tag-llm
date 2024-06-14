@@ -10,7 +10,7 @@ from tape.data.llm.engine import LlmOnlineEngineArgs, LlmResponseModel
 class LlmOgbArxivResponses(LlmOnlineEngine):
 
     def __init__(self, args: LlmOnlineEngineArgs, class_id_to_label: Dict) -> None:        
-        super().__init__(args)
+        super().__init__(args=args, dataset_name='ogb_arxiv')
         self.class_id_to_label = class_id_to_label
         self.system_message = 'Which arXiv CS sub-category does this paper belong to?'
 

@@ -4,8 +4,6 @@ import torch
 from torch_geometric.data import Data
 
 from tape.data import parser
-from tape.data.llm import online as llm_online_engine
-from tape.data.llm import offline as llm_offline_engine
 from tape.data.lm_encoder import LmEncoder, LmEncoderArgs
 from tape.data.llm.engine import LlmOnlineEngineArgs, LlmOfflineEngineArgs
 
@@ -78,11 +76,13 @@ class GraphDataset:
         graph = self._parser.graph
 
         if self.llm_online_engine_args:
+            from tape.data.llm import online as engine
+
             args = self.llm_online_engine_args
-            engine = llm_online_engine
         else:
+            from tape.data.llm import offline as engine
+
             args = self.llm_offline_engine_args
-            engine = llm_offline_engine
 
         if self.dataset_name == 'pubmed':
             cls = engine.LlmPubmedResponses

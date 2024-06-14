@@ -1,7 +1,7 @@
 from pathlib import Path
 from dataclasses import dataclass
 from abc import abstractmethod, ABC
-from typing import Literal, Union, Optional, List, Dict
+from typing import Union, Optional, List, Dict
 
 from pydantic import BaseModel
 from dotenv import load_dotenv
@@ -13,16 +13,12 @@ load_dotenv()
 
 @dataclass
 class LlmOnlineEngineArgs:
-    dataset_name: Literal['pubmed', 'ogb_arxiv']
     model: str
     max_retries: int = 5
     sampling_kwargs: Optional[Dict] = None # Arguments for OpenAI's `client.chat.completions.create` method
     cache_dir: str = '.cache'
 
     def __post_init__(self) -> None:
-        supported_datasets = ('pubmed', 'ogb_arxiv')
-        assert self.dataset_name in supported_datasets, \
-            f'Invalid dataset name "{self.dataset_name}"! Please select from {supported_datasets}.'
         if self.cache_dir:
             self.cache_dir = str(Path.cwd() / self.cache_dir)
 

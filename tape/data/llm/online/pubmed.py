@@ -12,14 +12,10 @@ class LlmPubmedResponses(LlmOnlineEngine):
     def __init__(self, args: LlmOnlineEngineArgs, class_id_to_label: Dict) -> None:
         super().__init__(args)
         self.class_id_to_label = class_id_to_label
-    
-    @property
-    def system_message(self) -> str:
-        message = (
+        self.system_message = (
             'Classify a scientific publication (containing title and abstract) '
             'into provided categories.'
         )
-        return message
 
     def get_response_model(self) -> LlmResponseModel:
         

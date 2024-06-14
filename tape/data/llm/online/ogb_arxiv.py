@@ -12,10 +12,7 @@ class LlmOgbArxivResponses(LlmOnlineEngine):
     def __init__(self, args: LlmOnlineEngineArgs, class_id_to_label: Dict) -> None:        
         super().__init__(args)
         self.class_id_to_label = class_id_to_label
-
-    @property
-    def system_message(self) -> str:
-        return 'Which arXiv CS sub-category does this paper belong to?'
+        self.system_message = 'Which arXiv CS sub-category does this paper belong to?'
 
     def get_response_model(self) -> LlmResponseModel:
         

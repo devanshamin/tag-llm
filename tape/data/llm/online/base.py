@@ -25,11 +25,6 @@ class LlmOnlineEngine(LlmEngine):
     def get_response_model(self) -> LlmResponseModel:
         pass
     
-    @abstractmethod
-    @property
-    def system_message(self) -> str:
-        pass
-
     @property
     def response_model(self) -> LlmResponseModel:
         if self._response_model is None:

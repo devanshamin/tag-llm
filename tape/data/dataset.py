@@ -1,12 +1,13 @@
 from typing import Literal, Optional, Union
 
 import torch
-from tqdm import tqdm
 from torch_geometric.data import Data
 
 from tape.data import parser
+from tape.data.llm import online as llm_online_engine
+from tape.data.llm import offline as llm_offline_engine
 from tape.data.lm_encoder import LmEncoder, LmEncoderArgs
-from tape.data.llm import LlmConnectorArgs, OgbArxivLlmResponses, PubmedLlmResponses
+from tape.data.llm.engine import LlmOnlineEngineArgs, LlmOfflineEngineArgs
 
 
 class GraphDataset:
@@ -16,7 +17,8 @@ class GraphDataset:
         dataset_name: str,
         feature_type: Literal['title_abstract', 'prediction', 'explanation'],
         lm_encoder_args: LmEncoderArgs,
-        llm_connector_args: LlmConnectorArgs,
+        llm_online_engine_args: Optional[LlmOnlineEngineArgs] = None,
+        llm_offline_engine_args: Optional[LlmOfflineEngineArgs] = None,
         device: Optional[Union[str, torch.device]] = None,
         seed: Optional[int] = 42,
         cache_dir: str = '.cache'
@@ -25,9 +27,13 @@ class GraphDataset:
         self.seed = seed
         self.dataset_name = dataset_name.lower()
         self.feature_type = feature_type
+        self.llm_online_engine_args = llm_online_engine_args
+        self.llm_offline_engine_args = llm_offline_engine_args
         self.cache_dir = cache_dir
-        self.llm_connector_args = llm_connector_args
 
+        assert llm_online_engine_args or llm_offline_engine_args, \
+            'LLM online/offline engine arguments cannot be empty! Please provide either one of them.'
+        
         lm_encoder_args.device = device
         self.lm_encoder = LmEncoder(args=lm_encoder_args)
 
@@ -67,6 +73,26 @@ class GraphDataset:
         self._parser.parse()
         self._dataset = self._parser.graph.dataset
     
+    def _get_llm_responses(self):
+        
+        graph = self._parser.graph
+
+        if self.llm_online_engine_args:
+            args = self.llm_online_engine_args
+            engine = llm_online_engine
+        else:
+            args = self.llm_offline_engine_args
+            engine = llm_offline_engine
+
+        if self.dataset_name == 'pubmed':
+            cls = engine.LlmPubmedResponses
+        elif self.dataset_name == 'ogb_arxiv':
+            cls = engine.LlmOgbArxivResponses
+
+        llm = cls(args=args, class_id_to_label=graph.class_id_to_label)
+        responses = llm.get_responses_from_articles(articles=graph.articles) 
+        return responses
+
     def update_node_features(self) -> None:
         """Update original node features with Language Model (LM) features."""
 
@@ -79,15 +105,7 @@ class GraphDataset:
             ]
             features = self.lm_encoder(texts)
         else:
-            if self.dataset_name == 'pubmed':
-                cls = PubmedLlmResponses
-            elif self.dataset_name == 'ogb_arxiv':
-                cls = OgbArxivLlmResponses
-            llm = cls(
-                args=self.llm_connector_args,
-                class_id_to_label=graph.class_id_to_label
-            )
-            responses = llm.get_responses_from_articles(articles)
+            responses = self._get_llm_responses()
             
             if self.feature_type == 'explanation':
                 texts = [resp.reason for resp in responses]
@@ -100,7 +118,7 @@ class GraphDataset:
                 }
                 features = torch.zeros((self._dataset.num_nodes, self.topk))
                 for i, resp in enumerate(responses):
-                    preds = [label2id[label.value] for label in resp.label]
+                    preds = [label2id[label] for label in resp.label]
                     features[i] = torch.tensor(preds, dtype=torch.long)
         
         self._dataset.x = features

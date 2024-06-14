@@ -1,32 +1,25 @@
 from enum import Enum
-from pathlib import Path
-from typing import Literal, List, Dict, Optional
+from typing import List, Dict
 
-from pydantic import BaseModel, Field
+from pydantic import Field
 
-from tape.data.parser.ogb_arxiv import Article
-from tape.data.llm.base import LlmConnector, LlmResponseModel, LlmConnectorArgs
+from tape.data.llm.online.base import LlmOnlineEngine
+from tape.data.llm.engine import LlmOnlineEngineArgs, LlmResponseModel
 
 
-class PubmedLlmResponses(LlmConnector):
+class LlmPubmedResponses(LlmOnlineEngine):
 
-    def __init__(self, args: LlmConnectorArgs, class_id_to_label: Dict) -> None:
-        
-        args.dataset_name = 'pubmed'
+    def __init__(self, args: LlmOnlineEngineArgs, class_id_to_label: Dict) -> None:
         super().__init__(args)
         self.class_id_to_label = class_id_to_label
-        self._response_model = None
     
-    def __call__(self, article: Article, **inference_kwargs) -> Optional[LlmResponseModel]:
-
-        response = self.inference(
-            messages=[
-                dict(role='system', content="Classify a scientific publication (containing title and abstract) into provided categories."),
-                dict(role='user', content='Title: {}\nAbstract: {}'.format(article.title, article.abstract))
-            ],
-            **inference_kwargs
+    @property
+    def system_message(self) -> str:
+        message = (
+            'Classify a scientific publication (containing title and abstract) '
+            'into provided categories.'
         )
-        return response
+        return message
 
     def get_response_model(self) -> LlmResponseModel:
         
@@ -35,12 +28,12 @@ class PubmedLlmResponses(LlmConnector):
             TYPE_1_DIABETES = 'Type 1 Diabetes'
             TYPE_2_DIABETES = 'Type 2 Diabetes'
 
-        class RankedClass(BaseModel):
-            category: PaperCategory
-            rank: Literal[1, 2, 3]
+        # class RankedClass(BaseModel):
+        #     category: PaperCategory
+        #     rank: Literal[1, 2, 3]
 
         class Classification(LlmResponseModel):
-            label: List[RankedClass] = Field(
+            label: List[PaperCategory] = Field(
                 ..., 
                 description=(
                     'Provide the most likely category (or categories if multiple options apply) ordered '
@@ -73,9 +66,3 @@ class PubmedLlmResponses(LlmConnector):
             )
         
         return Classification
-
-    def llm_responses_reader(self, responses_dir: Path):
-        raise NotImplementedError(
-            'Reading LLM responses is not supported for the PubMed dataset '
-            'because the JSON files do not contain comma-separated labels (ranked labels).'
-        )

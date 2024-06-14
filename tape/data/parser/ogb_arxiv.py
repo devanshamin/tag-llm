@@ -1,7 +1,7 @@
 import re
 import zipfile
 from pathlib import Path
-from typing import Dict, NamedTuple, Optional, List
+from typing import Dict, Optional, List
 
 import torch
 import gdown
@@ -11,13 +11,7 @@ import torch_geometric.transforms as T
 from torch_geometric.data import Data
 from ogb.nodeproppred import PygNodePropPredDataset
 
-from tape.data.parser.base import Parser
-
-
-class Article(NamedTuple):
-    paper_id: str
-    title: str
-    abstract: str
+from tape.data.parser.base import Parser, Article
 
 
 class OgbArxivParser(Parser):

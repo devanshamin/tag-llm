@@ -1,20 +1,14 @@
 import json
 import zipfile
 from pathlib import Path
-from typing import Dict, List, NamedTuple, Optional
+from typing import Dict, List, Optional
 
 import torch
 import gdown
 from torch_geometric.data import Data
 from torch_geometric.datasets import Planetoid
 
-from tape.data.parser.base import Parser
-
-
-class Article(NamedTuple):
-    pubmed_id: str
-    title: str
-    abstract: str
+from tape.data.parser.base import Parser, Article
 
 
 class PubmedParser(Parser):
@@ -144,7 +138,7 @@ class PubmedGraph:
         node_id = 0
         for article in data:
             if (pubmed_id := article.get('PMID')) and (title := article.get('TI')) and (abstract := article.get('AB')):
-                self.articles.append(Article(pubmed_id=pubmed_id, title=title, abstract=abstract))
+                self.articles.append(Article(paper_id=pubmed_id, title=title, abstract=abstract))
                 self.pubmed_id_to_node_id[pubmed_id] = node_id
                 node_id += 1
             else:

@@ -76,7 +76,7 @@ class LmEncoder:
         torch.cuda.empty_cache()
         return embeddings
 
-    def __call__(self, articles: List[str], **kwargs) -> torch.tensor:
+    def __call__(self, articles: List[str], **kwargs) -> torch.Tensor:
 
         if self.args.model_library == 'transformers':
             default_kwargs = asdict(self.args.transformers_encoder_args)
@@ -91,6 +91,4 @@ class LmEncoder:
             default_kwargs.update(kwargs) # kwargs overrides the default config
             default_kwargs.pop('convert_to_tensor', None)
             embeddings = self.model.encode(articles, convert_to_tensor=True, **kwargs)
-
         return embeddings
-

@@ -4,7 +4,7 @@ from typing import Optional, Literal, Tuple
 import torch
 from torch_geometric.data import Data
 
-from tape.model import NodeClassifierArgs, NodeClassifier
+from tape.gnn_model import NodeClassifierArgs, NodeClassifier
 from tape.data.dataset import GraphDataset
 
 

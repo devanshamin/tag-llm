@@ -26,7 +26,7 @@ class NodeClassifier(torch.nn.Module):
         self.use_predictions = args.use_predictions
         if self.use_predictions:
             # Embedding lookup for each class (out_channels == num_classes)
-            self.encoder = nn.Embedding(args.out_channels, args.hidden_channels)
+            self.encoder = nn.Embedding(args.out_channels + 1, args.hidden_channels)
         
         self.convs = nn.ModuleList()
         self.batch_norm = nn.ModuleList()

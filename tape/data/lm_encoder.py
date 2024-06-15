@@ -74,47 +74,47 @@ class LmEncoder:
         print(f'Saved embedding file to "{self.cached_embd_path}"')
 
     @torch.inference_mode()
-    def _hf_encoder(self, articles: List[str], **kwargs):
-        encoded_articles = self.tokenizer(
-            articles, 
+    def _hf_encoder(self, sentences: List[str], **kwargs):
+        encoded_sentences = self.tokenizer(
+            sentences, 
             truncation=kwargs.get('truncation', True), 
             padding=kwargs.get('padding', True), 
             return_tensors='pt', 
             max_length=kwargs.get('max_length', 512), 
         ).to(self.device)
         # Encode the queries (use the [CLS] last hidden states as the representations)
-        embeddings = self.model(**encoded_articles).last_hidden_state[:, 0, :]
+        embeddings = self.model(**encoded_sentences).last_hidden_state[:, 0, :]
         torch.cuda.empty_cache()
         return embeddings
 
-    def _get_embeddings(self, articles: List[str], **kwargs):
+    def _get_embeddings(self, sentences: List[str], **kwargs):
         if self.args.model_library == 'transformers':
             _kwargs = asdict(self.args.transformers_encoder_args)
             _kwargs.update(kwargs) # kwargs overrides the default config
             batch_size = _kwargs['batch_size']
             embeddings = []
-            for step in tqdm(range(0, len(articles), batch_size), total=len(articles)//batch_size, desc='Batches'):
-                embeddings.append(self._hf_encoder(articles=articles[step:step + batch_size], **_kwargs))
+            for step in tqdm(range(0, len(sentences), batch_size), total=len(sentences)//batch_size, desc='Batches'):
+                embeddings.append(self._hf_encoder(sentences=sentences[step:step + batch_size], **_kwargs))
             embeddings = torch.cat(embeddings)
         elif self.args.model_library == 'sentence_transformer':
             _kwargs = asdict(self.args.sentence_transformer_encoder_args)
             _kwargs.update(kwargs) # kwargs overrides the default config
             _kwargs.pop('convert_to_tensor', None)
-            embeddings = self.model.encode(articles, convert_to_tensor=True, **_kwargs)
+            embeddings = self.model.encode(sentences, convert_to_tensor=True, **_kwargs)
         return embeddings
 
-    def __call__(self, articles: List[str], **kwargs) -> torch.Tensor:
-        missing_articles_idxs = []
+    def __call__(self, sentences: List[str], **kwargs) -> torch.Tensor:
+        missing_sentences_idxs = []
         embeddings = []
-        for i, inp_hash in enumerate(map(LmEncoder.get_hash, articles)):
+        for i, inp_hash in enumerate(map(LmEncoder.get_hash, sentences)):
             if (embd := self._input_hash_to_embedding.get(inp_hash)) is None:
-                missing_articles_idxs.append((i, inp_hash))
+                missing_sentences_idxs.append((i, inp_hash))
             else:
-                articles[i] = None
+                sentences[i] = None
             embeddings.append(embd)
-        if missing_articles_idxs:
-            missing_embeddings = self._get_embeddings(articles=list(filter(None, articles)), **kwargs)
-            for (idx, inp_hash), embedding in zip(missing_articles_idxs, missing_embeddings):
+        if missing_sentences_idxs:
+            missing_embeddings = self._get_embeddings(sentences=list(filter(None, sentences)), **kwargs)
+            for (idx, inp_hash), embedding in zip(missing_sentences_idxs, missing_embeddings):
                 embeddings[idx] = embedding
                 self._input_hash_to_embedding[inp_hash] = embedding
         return embeddings

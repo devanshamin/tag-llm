@@ -71,6 +71,54 @@ class GraphDataset:
         self._parser = cls(seed=self.seed, cache_dir=self.cache_dir)
         self._parser.parse()
         self._dataset = self._parser.graph.dataset
+
+    def update_node_features(self) -> None:
+        """Update original node features with Language Model (LM) features."""
+
+        print('Generating node features...')
+        graph = self._parser.graph
+        articles = graph.articles
+
+        if self.feature_type == FeatureType.TITLE_ABSTRACT:
+            sentences = [
+                f'Title: {article.title}\nAbstract: {article.abstract}'
+                for article in articles
+            ]
+            features = self.lm_encoder(sentences)
+            features = torch.stack(features)
+            self.lm_encoder.save_cache()
+        else:
+            responses = self._get_llm_responses()
+            
+            if self.feature_type == FeatureType.EXPLANATION:
+                features = self.lm_encoder(sentences=[resp.reason for resp in responses])
+                features = torch.stack(features)
+                self.lm_encoder.save_cache()
+            else:
+                # FeatureType.PREDICTION
+                label2id = {
+                    v['label'] if isinstance(v, dict) else v: k 
+                    for k, v in graph.class_id_to_label.items()
+                }
+                features = torch.zeros((self._dataset.num_nodes, self.topk))
+                for i, resp in enumerate(responses):
+                    # Convert the predicted labels (which are strings) to their corresponding integer IDs.
+                    preds = [label2id[label] for label in resp.label]
+
+                    # Assign the converted predictions to the corresponding row in the features tensor.
+                    # `preds` can have fewer elements than `topk`, so we only fill as many elements as we have in `preds`.
+                    # We add 1 to each ID because the nn.Embedding layer typically expects non-zero indices to learn embeddings.
+                    # Zero can be used to represent padding or a non-existent class.
+                    features[i][:len(preds)] = torch.tensor(preds, dtype=torch.long) + 1
+
+                    # Explanation of why we add 1 to the labels:
+                    # The OGBN-Arxiv dataset contains LLM predictions where the labels are fixed topk values.
+                    # In contrast, the PubMed dataset contains LLM predictions where the labels can be either a single value or multiple values.
+                    # During GNN training, the features tensor is passed to an nn.Embedding layer.
+                    # If we had topk=3 and preds = [0], initializing the features with zeros would make it difficult to distinguish
+                    # between "no prediction" and "prediction of class 0". To denote that the class is present, we increment the value by 1.
+        
+        self._dataset.x = features
     
     def _get_llm_responses(self):
         
@@ -93,33 +141,3 @@ class GraphDataset:
         llm = cls(args=args, class_id_to_label=graph.class_id_to_label)
         responses = llm.get_responses_from_articles(articles=graph.articles) 
         return responses
-
-    def update_node_features(self) -> None:
-        """Update original node features with Language Model (LM) features."""
-
-        graph = self._parser.graph
-        articles = graph.articles
-        if self.feature_type == 'title_abstract':
-            sentences = [
-                f'Title: {article.title}\nAbstract: {article.abstract}'
-                for article in articles
-            ]
-            features = self.lm_encoder(sentences)
-        else:
-            responses = self._get_llm_responses()
-            
-            if self.feature_type == 'explanation':
-                features = self.lm_encoder(sentences=[resp.reason for resp in responses])
-            else:
-                # prediction
-                label2id = {
-                    v['label'] if isinstance(v, dict) else v: k 
-                    for k, v in graph.class_id_to_label
-                }
-                features = torch.zeros((self._dataset.num_nodes, self.topk))
-                for i, resp in enumerate(responses):
-                    preds = [label2id[label] for label in resp.label]
-                    features[i] = torch.tensor(preds, dtype=torch.long)
-        
-        self.lm_encoder.save_cache()
-        self._dataset.x = features

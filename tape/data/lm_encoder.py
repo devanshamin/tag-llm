@@ -1,8 +1,7 @@
 import hashlib
 import warnings
 from pathlib import Path
-from copy import deepcopy
-from dataclasses import dataclass
+from dataclasses import dataclass, asdict
 from typing import Optional, List, Literal
 
 import torch
@@ -35,19 +34,11 @@ class LmEncoderArgs:
     device: Optional[str] = None
     cache_dir: str = '.cache'
 
-    def __post_init__(self) -> None:
-        if self.model_library == 'transformers' and not self.transformers_encoder_args:
-            self.transformers_encoder_args = TransformersTokenizerArgs()
-        else:
-            if not self.sentence_transformer_encoder_args:
-                self.sentence_transformer_encoder_args = SentenceTransformerArgs()
-
 
 class LmEncoder:
     """Language model article encoder."""
 
     def __init__(self, args: LmEncoderArgs) -> None:
-
         self.args = args
         self.device = args.device or ('cuda' if torch.cuda.is_available() else 'cpu')
         self.model = None
@@ -96,30 +87,36 @@ class LmEncoder:
         torch.cuda.empty_cache()
         return embeddings
 
-    def _cache_lookup(self, articles: List[str]):
-        embeddings = [
-            self._input_hash_to_embedding[k] 
-            for k in map(LmEncoder.get_hash, articles) if k in self._input_hash_to_embedding
-        ]
+    def _get_embeddings(self, articles: List[str], **kwargs):
+        if self.args.model_library == 'transformers':
+            _kwargs = asdict(self.args.transformers_encoder_args)
+            _kwargs.update(kwargs) # kwargs overrides the default config
+            batch_size = _kwargs['batch_size']
+            embeddings = []
+            for step in tqdm(range(0, len(articles), batch_size), total=len(articles)//batch_size, desc='Batches'):
+                embeddings.append(self._hf_encoder(articles=articles[step:step + batch_size], **_kwargs))
+            embeddings = torch.cat(embeddings)
+        elif self.args.model_library == 'sentence_transformer':
+            _kwargs = asdict(self.args.sentence_transformer_encoder_args)
+            _kwargs.update(kwargs) # kwargs overrides the default config
+            _kwargs.pop('convert_to_tensor', None)
+            embeddings = self.model.encode(articles, convert_to_tensor=True, **_kwargs)
         return embeddings
 
     def __call__(self, articles: List[str], **kwargs) -> torch.Tensor:
-        embeddings = self._cache_lookup(articles)
-        if len(embeddings) != len(articles): # Recompute if there is an incomplete/partial match
-            if self.args.model_library == 'transformers':
-                _kwargs = deepcopy(self.args.transformers_encoder_args)
-                _kwargs.update(kwargs) # kwargs overrides the default config
-                batch_size = _kwargs['batch_size']
-                embeddings = []
-                for step in tqdm(range(0, len(articles), batch_size), total=len(articles)//batch_size, desc='Batches'):
-                    embeddings.append(self._hf_encoder(articles=articles[step:step + batch_size], **_kwargs))
-                embeddings = torch.cat(embeddings)
-            elif self.args.model_library == 'sentence_transformer':
-                _kwargs = deepcopy(self.args.sentence_transformer_encoder_args)
-                _kwargs.update(kwargs) # kwargs overrides the default config
-                _kwargs.pop('convert_to_tensor', None)
-                embeddings = self.model.encode(articles, convert_to_tensor=True, **_kwargs)
-            self._input_hash_to_embedding.update(dict(zip(map(LmEncoder.get_hash, articles), embeddings)))
+        missing_articles_idxs = []
+        embeddings = []
+        for i, inp_hash in enumerate(map(LmEncoder.get_hash, articles)):
+            if (embd := self._input_hash_to_embedding.get(inp_hash)) is None:
+                missing_articles_idxs.append((i, inp_hash))
+            else:
+                articles[i] = None
+            embeddings.append(embd)
+        if missing_articles_idxs:
+            missing_embeddings = self._get_embeddings(articles=list(filter(None, articles)), **kwargs)
+            for (idx, inp_hash), embedding in zip(missing_articles_idxs, missing_embeddings):
+                embeddings[idx] = embedding
+                self._input_hash_to_embedding[inp_hash] = embedding
         return embeddings
 
     @staticmethod

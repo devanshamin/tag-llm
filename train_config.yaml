@@ -1,27 +1,29 @@
-dataset: pubmed
-feature_type: explanation
+dataset: PUBMED
+feature_type: PREDICTION
 cache_dir: .cache
 seed: 42
 
 lm_encoder:
+  dataset_name: ${dataset}
+  feature_type: ${feature_type}
   model_name_or_path: avsolatorio/GIST-Embedding-v0
   model_library: sentence_transformer
   sentence_transformer_encoder_args:
-    batch_size: 50
+    batch_size: 100
     show_progress_bar: True
     precision: float32
   cache_dir: ${cache_dir}
 
 llm_online_engine:
-  dataset_name: ${dataset}
   cache_dir: ${cache_dir}
   sampling_kwargs:
     max_tokens: 500
-  #model: groq/mixtral-8x7b-32768 # https://litellm.vercel.app/docs/providers
-  model: anthropic/claude-3-haiku-20240307
+  # https://litellm.vercel.app/docs/providers
+  #model: groq/mixtral-8x7b-32768 
+  #model: anthropic/claude-3-haiku-20240307
+  model: huggingface/meta-llama/Meta-Llama-3-8B-Instruct
 
 # llm_offline_engine:
-#   dataset_name: ${dataset}
 #   cache_dir: ${cache_dir}
 #   sampling_kwargs:
 #     max_tokens: 500

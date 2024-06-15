@@ -8,6 +8,7 @@ import instructor
 from tqdm import tqdm
 from litellm import completion
 
+from tape.config import DatasetName
 from tape.data.parser import Article
 from tape.data.llm.online.cache import setup_cache, llm_responses_cache
 from tape.data.llm.engine import LlmEngine, LlmOnlineEngineArgs, LlmResponseModel
@@ -15,10 +16,10 @@ from tape.data.llm.engine import LlmEngine, LlmOnlineEngineArgs, LlmResponseMode
 
 class LlmOnlineEngine(LlmEngine):
     
-    def __init__(self, args: LlmOnlineEngineArgs, dataset_name: str) -> None:
+    def __init__(self, args: LlmOnlineEngineArgs, dataset_name: DatasetName) -> None:
         super().__init__(args)
         self.client = instructor.from_litellm(completion)
-        setup_cache(cache_dir=Path(args.cache_dir) / f'tape_llm_responses/{dataset_name.lower()}')
+        setup_cache(cache_dir=Path(args.cache_dir) / f'tape_llm_responses/{dataset_name.value}')
         self._response_model = None
     
     @abstractmethod

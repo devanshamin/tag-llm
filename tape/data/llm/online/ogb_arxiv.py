@@ -3,6 +3,7 @@ from typing import List, Dict
 
 from pydantic import Field
 
+from tape.config import DatasetName
 from tape.data.llm.online.base import LlmOnlineEngine
 from tape.data.llm.engine import LlmOnlineEngineArgs, LlmResponseModel
 
@@ -10,7 +11,7 @@ from tape.data.llm.engine import LlmOnlineEngineArgs, LlmResponseModel
 class LlmOgbArxivResponses(LlmOnlineEngine):
 
     def __init__(self, args: LlmOnlineEngineArgs, class_id_to_label: Dict) -> None:        
-        super().__init__(args=args, dataset_name='ogb_arxiv')
+        super().__init__(args=args, dataset_name=DatasetName.OGBN_ARXIV)
         self.class_id_to_label = class_id_to_label
         self.system_message = 'Which arXiv CS sub-category does this paper belong to?'
 
@@ -21,10 +22,6 @@ class LlmOgbArxivResponses(LlmOnlineEngine):
         # This is fine for this case where you have 40 classes and adding their description
         # will result into quite a long prompt impacting accuracy, cost and response time.
         PaperCategory = self._get_paper_category_enum()
-        
-        # class RankedClass(BaseModel):
-        #     category: PaperCategory # type: ignore
-        #     rank: Literal[1, 2, 3, 4, 5] # topk = 5
 
         class Classification(LlmResponseModel):
             label: List[PaperCategory] = Field( # type: ignore

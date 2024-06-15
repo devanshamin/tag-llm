@@ -1,4 +1,3 @@
-import hashlib
 import warnings
 from pathlib import Path
 from dataclasses import dataclass, asdict
@@ -8,6 +7,9 @@ import torch
 from tqdm import tqdm
 from safetensors import safe_open
 from safetensors.torch import save_file
+
+from tape.config import DatasetName, FeatureType
+from tape.data.utils import generate_string_hash
 
 warnings.filterwarnings('ignore') # Ignore HuggingFace libraries warnings
 
@@ -26,7 +28,8 @@ class SentenceTransformerArgs:
 
 @dataclass
 class LmEncoderArgs:
-    dataset_name: str
+    dataset_name: DatasetName # Used for creating file name to save embeddings
+    feature_type: FeatureType # Used for creating file name to save embeddings 
     model_name_or_path: str
     model_library: Literal['transformers', 'sentence_transformer']
     transformers_encoder_args: Optional[TransformersTokenizerArgs] = None
@@ -44,9 +47,15 @@ class LmEncoder:
         self.model = None
         self.tokenizer = None
         cache_dir = Path.cwd() / args.cache_dir
-        file_name = f'{args.dataset_name}_{args.model_name_or_path.replace("/", "--")}.safetensors'
-        self.cached_embd_path = cache_dir / file_name
-        self._input_hash_to_embedding = self._load_cache()
+
+        embd_cache_dir = cache_dir / 'embeddings'
+        embd_cache_dir.mkdir(exist_ok=True, parents=True)
+        file_name = (
+            f'{args.feature_type.value}_{args.dataset_name.value}'
+            f'_{args.model_name_or_path.replace("/", "--")}.safetensors'
+        )
+        self.embd_cache_path = embd_cache_dir / file_name
+        self._sent_hash_to_embedding = self._load_cache()
 
         if args.model_library == 'transformers':
             from transformers import AutoTokenizer, AutoModel
@@ -62,16 +71,16 @@ class LmEncoder:
     
     def _load_cache(self):
         input_hash_to_embedding = {}
-        if self.cached_embd_path.exists():
+        if self.embd_cache_path.exists():
             print('Loading cached embeddings...')
-            with safe_open(str(self.cached_embd_path), framework="pt", device=self.device) as f:
+            with safe_open(str(self.embd_cache_path), framework="pt", device=self.device) as f:
                 for k in f.keys():
                     input_hash_to_embedding[k] = f.get_tensor(k)
         return input_hash_to_embedding
 
     def save_cache(self) -> None:
-        save_file(self._input_hash_to_embedding, str(self.cached_embd_path))
-        print(f'Saved embedding file to "{self.cached_embd_path}"')
+        save_file(self._sent_hash_to_embedding, str(self.embd_cache_path))
+        print(f'Saved embedding file to "{self.embd_cache_path}"')
 
     @torch.inference_mode()
     def _hf_encoder(self, sentences: List[str], **kwargs):
@@ -106,21 +115,15 @@ class LmEncoder:
     def __call__(self, sentences: List[str], **kwargs) -> torch.Tensor:
         missing_sentences_idxs = []
         embeddings = []
-        for i, inp_hash in enumerate(map(LmEncoder.get_hash, sentences)):
-            if (embd := self._input_hash_to_embedding.get(inp_hash)) is None:
-                missing_sentences_idxs.append((i, inp_hash))
+        for idx, sent_hash in enumerate(map(generate_string_hash, sentences)):
+            if (embd := self._sent_hash_to_embedding.get(sent_hash)) is None:
+                missing_sentences_idxs.append((idx, sent_hash))
             else:
-                sentences[i] = None
+                sentences[idx] = None
             embeddings.append(embd)
         if missing_sentences_idxs:
             missing_embeddings = self._get_embeddings(sentences=list(filter(None, sentences)), **kwargs)
-            for (idx, inp_hash), embedding in zip(missing_sentences_idxs, missing_embeddings):
+            for (idx, sent_hash), embedding in zip(missing_sentences_idxs, missing_embeddings):
                 embeddings[idx] = embedding
-                self._input_hash_to_embedding[inp_hash] = embedding
+                self._sent_hash_to_embedding[sent_hash] = embedding
         return embeddings
-
-    @staticmethod
-    def get_hash(input_str: str):
-        sha256 = hashlib.sha256()
-        sha256.update(input_str.encode('utf-8'))
-        return sha256.hexdigest()

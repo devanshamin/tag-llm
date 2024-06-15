@@ -3,6 +3,7 @@ from typing import List, Dict
 
 from pydantic import Field
 
+from tape.config import DatasetName
 from tape.data.llm.online.base import LlmOnlineEngine
 from tape.data.llm.engine import LlmOnlineEngineArgs, LlmResponseModel
 
@@ -10,7 +11,7 @@ from tape.data.llm.engine import LlmOnlineEngineArgs, LlmResponseModel
 class LlmPubmedResponses(LlmOnlineEngine):
 
     def __init__(self, args: LlmOnlineEngineArgs, class_id_to_label: Dict) -> None:
-        super().__init__(args=args, dataset_name='pubmed')
+        super().__init__(args=args, dataset_name=DatasetName.PUBMED)
         self.class_id_to_label = class_id_to_label
         self.system_message = (
             'Classify a scientific publication (containing title and abstract) '
@@ -23,10 +24,6 @@ class LlmPubmedResponses(LlmOnlineEngine):
             EXPERIMENTAL_DIABETES = 'Experimental Diabetes'
             TYPE_1_DIABETES = 'Type 1 Diabetes'
             TYPE_2_DIABETES = 'Type 2 Diabetes'
-
-        # class RankedClass(BaseModel):
-        #     category: PaperCategory
-        #     rank: Literal[1, 2, 3]
 
         class Classification(LlmResponseModel):
             label: List[PaperCategory] = Field(

@@ -1,4 +1,3 @@
-import hashlib
 import json
 import functools
 from typing import Union
@@ -7,6 +6,8 @@ from pathlib import Path
 import diskcache
 from pydantic import BaseModel
 from litellm import ModelResponse
+
+from tape.data.utils import generate_string_hash
 
 
 CACHE = None
@@ -48,10 +49,3 @@ def make_key(args, kwargs):
         data += k + convert(v)
     input_hash = generate_string_hash(data)
     return input_hash
-
-
-def generate_string_hash(input_string: str, algorithm: str = 'sha256'):
-    input_bytes = input_string.encode('utf-8')
-    hash_obj = hashlib.new(algorithm)
-    hash_obj.update(input_bytes)
-    return hash_obj.hexdigest()

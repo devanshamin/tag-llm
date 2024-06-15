@@ -2,8 +2,10 @@ from enum import Enum
 from typing import List, Dict
 
 from pydantic import Field
+from datasets import load_dataset
 
 from tape.config import DatasetName
+from tape.data.parser import Article
 from tape.data.llm.online.base import LlmOnlineEngine
 from tape.data.llm.engine import LlmOnlineEngineArgs, LlmResponseModel
 
@@ -51,11 +53,30 @@ class LlmPubmedResponses(LlmOnlineEngine):
                     # ),
                     # Example containing multiple paper categories ➜ Type 1 Diabetes & Experimental Diabetes
                     (
-                        'Type 1 diabetes is present in the abstract as the study was conducted on cardiac mitochondria from type-I diabetic rats. '
-                        'Experimentally induced diabetes is also present in the abstract as the study involved inducing diabetes in rats and '
+                        'Type 1 diabetes is present in the abstract as the study was conducted on cardiac '
+                        'mitochondria from type-I diabetic rats. Experimentally induced diabetes is also '
+                        'present in the abstract as the study involved inducing diabetes in rats and '
                         'comparing the mitochondrial function of these rats to control rats.'
                     ),
                 ]
             )
         
         return Classification
+
+    def get_responses_from_articles(self, articles: List[Article]) -> List[LlmResponseModel]:
+        if self.args.model == 'huggingface/meta-llama/Meta-Llama-3-8B-Instruct':
+            dataset = load_dataset(
+                "devanshamin/PubMedDiabetes-LLM-Predictions", 
+                cache_dir=self.args.cache_dir, 
+                split='train'
+            )
+            responses = []
+            for sample in dataset:
+                response = self.response_model(
+                    label=sample['predicted_ranked_labels'].split('; '), 
+                    reason=sample['explanation']
+                )
+                responses.append(response)
+        else:
+            responses = super().get_responses_from_articles(articles)
+        return responses

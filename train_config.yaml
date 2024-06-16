@@ -1,5 +1,5 @@
 dataset: PUBMED
-feature_type: PREDICTION
+feature_type: TAPE
 cache_dir: .cache
 seed: 42
 
@@ -17,10 +17,9 @@ lm_encoder:
 llm_online_engine:
   cache_dir: ${cache_dir}
   sampling_kwargs:
-    max_tokens: 500
-  # https://litellm.vercel.app/docs/providers
+    max_tokens: 500 # LLM completion tokens
+  # Pick any provider model from https://litellm.vercel.app/docs/providers
   #model: groq/mixtral-8x7b-32768 
-  #model: anthropic/claude-3-haiku-20240307
   model: huggingface/meta-llama/Meta-Llama-3-8B-Instruct
 
 # llm_offline_engine:
@@ -44,7 +43,7 @@ gnn_model:
   dropout: 0.1
 
 gnn_trainer:
-  epochs: 100
+  epochs: 500
+  early_stopping_patience: 50
   lr: 0.0031622776601683794 # 10**-2.5
   weight_decay: 0.00001 # 10**-5
-

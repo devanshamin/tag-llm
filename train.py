@@ -1,5 +1,10 @@
+import copy
+import time
 from typing import Optional
+from dataclasses import is_dataclass
 
+import torch
+import pandas as pd
 from jsonargparse import ArgumentParser, ActionConfigFile
 
 from tape.config import DatasetName, FeatureType
@@ -26,8 +31,21 @@ def get_parser() -> ArgumentParser:
     return parser
 
 
-def train(args):
+def update_feature_type(args, feature_type: FeatureType):
+    field_name = 'feature_type'
+    args_copy = copy.deepcopy(args)
+    for attr, attribute_value in vars(args_copy).items():
+        if is_dataclass(attribute_value) and hasattr(attribute_value, field_name):
+            field_value = getattr(attribute_value, field_name)
+            if isinstance(field_value, FeatureType) and (field_value == FeatureType.TAPE):
+                setattr(attribute_value, field_name, feature_type)
+        elif attr == field_name:
+            if isinstance(attribute_value, FeatureType) and (attribute_value == FeatureType.TAPE):
+                setattr(args_copy, attr, feature_type)
+    return args_copy
 
+
+def _train(args):
     graph_dataset = GraphDataset(
         dataset_name=args.dataset,
         feature_type=args.feature_type,
@@ -43,7 +61,8 @@ def train(args):
         graph_dataset=graph_dataset,
         model_args=args.gnn_model,
     )
-    trainer.train()
+    test_output = trainer.train()
+    return graph_dataset, test_output
 
 
 if __name__ == '__main__':
@@ -51,11 +70,42 @@ if __name__ == '__main__':
     parser = get_parser()
     args = parser.parse_args()
     args = parser.instantiate_classes(args)
-    print(args)
-
+    start_time = time.perf_counter()
+    
     if args.feature_type == FeatureType.TAPE:
+        logits = []
+        pred_rows = []
         for value in ('TA', 'P', 'E'):
-            args.feature_type = FeatureType._value2member_map_[value]
-            train(args)
+            ftype = FeatureType._value2member_map_[value]
+            _args = update_feature_type(args, feature_type=ftype)
+            graph_dataset, test_output = _train(_args)
+            logits.append(test_output.logits)
+            ftype_str = f'{ftype.name} ({ftype.value})'
+            print(f'[Feature type: {ftype_str}] Test accuracy: {test_output.accuracy:.4f}')
+            pred_rows.append(dict(Feature_type=ftype_str, Test_accuracy=test_output.accuracy))
+        
+        # Fuse predictions of features (TA, P, E) by taking an average  
+        logits = torch.stack(logits).mean(dim=0)
+        y_true = graph_dataset.dataset.y
+        mask = graph_dataset.dataset.test_mask
+        test_acc = GnnTrainer.compute_accuracy(logits=logits, y_true=y_true, mask=mask)
+        pred_rows.append(
+            dict(
+                Feature_type=f'{args.feature_type.name} ({args.feature_type.value})',
+                Test_accuracy=test_acc
+            ),
+        )
+
+        print()
+        print(pd.DataFrame(pred_rows))
     else:
-        train(args)
+        _, test_output = _train(args)
+        print(
+            f'[Feature type: {args.feature_type.name} ({args.feature_type.value})] '
+            'Test accuracy: {test_output.accuracy:.4f}'
+        )
+    
+    execution_time = time.perf_counter() - start_time
+    minutes = int(execution_time // 60)
+    seconds = execution_time % 60
+    print(f'\nFinished execution in {minutes} minutes and {seconds:.2f} seconds.')

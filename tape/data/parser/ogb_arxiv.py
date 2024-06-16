@@ -52,6 +52,7 @@ class OgbArxivParser(Parser):
                     zip_file_path.unlink()
                 else:
                     response = requests.get(url, stream=True)
+                    dtype_to_path[dtype].parent.mkdir(exist_ok=True)
                     with open(dtype_to_path[dtype], 'wb') as f:
                         for chunk in response.iter_content(32_768):
                             if chunk:
@@ -71,18 +72,17 @@ class OgbArxivGraph:
         self.n_classes = 40
         self.n_nodes = 169_343
         self.n_features = 128
-        self.class_id_to_label: Dict = self._load_class_label_mapping()
+        self.class_id_to_label: Optional[Dict] = None
         self.articles: Optional[List[Article]] = None
         # Split containing train/val/test node ids
         self.split: Optional[Dict] = None
 
     def load(self):
-
         self._load_ogb_dataset()
         self._load_articles()
+        self.class_id_to_label = self._load_class_label_mapping()
 
     def _load_ogb_dataset(self):
-
         print('Loading OGB dataset...')
 
         dataset = PygNodePropPredDataset(name='ogbn-arxiv', root=self.cache_dir, transform=T.ToSparseTensor())
@@ -126,7 +126,6 @@ class OgbArxivGraph:
             self.articles.append(Article(paper_id=row.paper_id, title=row.title, abstract=row.abstract))
     
     def _load_class_label_mapping(self):
-
         mapping_df = pd.read_csv(
             self.cache_dir / 'ogbn_arxiv/mapping/labelidx2arxivcategeory.csv.gz',
             skiprows=1, 
@@ -142,7 +141,6 @@ class OgbArxivGraph:
 
     @staticmethod
     def fetch_arxiv_category_taxonomy(category: str = 'cs') -> List[Dict[str, str]]:
-
         text = requests.get('https://r.jina.ai/https://arxiv.org/category_taxonomy').text
         sections = re.split(r'#### ', text)[1:]
         data_list = []

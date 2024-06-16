@@ -14,7 +14,7 @@ from ogb.nodeproppred import PygNodePropPredDataset
 from tape.data.parser.base import Parser, Article
 
 
-class OgbArxivParser(Parser):
+class OgbnArxivParser(Parser):
     """Parser for [OGB arXiv](https://ogb.stanford.edu/docs/nodeprop/#ogbn-arxiv) dataset."""
 
     urls = {
@@ -33,7 +33,7 @@ class OgbArxivParser(Parser):
 
     def download_data(self) -> Dict[str, Path]:
         dtype_to_path = {}
-        for dtype, url in OgbArxivParser.urls.items():
+        for dtype, url in OgbnArxivParser.urls.items():
             save_dir = self.cache_dir / dtype
             save_dir.mkdir(exist_ok=True, parents=True)
             dtype_to_path[dtype] = save_dir / ('ogbn-arxiv' + ('_orig' if dtype == 'original' else ''))

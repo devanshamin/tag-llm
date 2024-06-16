@@ -64,7 +64,7 @@ class GraphDataset:
         if self.dataset_name == DatasetName.PUBMED:
             cls = parser.PubmedParser
         elif self.dataset_name == DatasetName.OGBN_ARXIV:
-            cls = parser.OgbArxivParser
+            cls = parser.OgbnArxivParser
         else:
             raise ValueError(f'Invalid dataset name "{self.dataset_name}"!')
         

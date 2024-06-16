@@ -1,4 +1,5 @@
 import json
+import time
 import functools
 from typing import Union
 from pathlib import Path
@@ -23,6 +24,7 @@ def llm_responses_cache(func):
     @functools.wraps(func)
     def wrapper(*args, **kwargs):
         assert CACHE is not None, 'Cache is not set! Please call `set_cache(...)` before calling the function.'
+        delay = kwargs.pop('delay', 0)
         response_model = kwargs['response_model']
         key = f'{func.__name__}-{make_key(args, kwargs)}'        
         if (cached := CACHE.get(key)) is not None:
@@ -31,6 +33,7 @@ def llm_responses_cache(func):
             data = usage.choices[0].message.tool_calls[0].function.arguments
             response = response_model.model_validate_json(data)
         else:
+            time.sleep(delay)
             # Call the function and cache its result
             response, usage = func(*args, **kwargs)
             serialize_usage = usage.model_dump_json()

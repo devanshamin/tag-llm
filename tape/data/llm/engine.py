@@ -16,6 +16,7 @@ class LlmOnlineEngineArgs:
     model: str
     max_retries: int = 5
     sampling_kwargs: Optional[Dict] = None # Arguments for OpenAI's `client.chat.completions.create` method
+    rate_limit_per_minute: Optional[int] = None # Requests per minute (RPM)
     cache_dir: str = '.cache'
 
     def __post_init__(self) -> None:

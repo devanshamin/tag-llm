@@ -8,6 +8,7 @@ import instructor
 from tqdm import tqdm
 from litellm import completion
 from torch_geometric.template import module_from_template
+from tenacity import retry, stop_after_attempt, wait_random_exponential
 
 from tape.config import DatasetName
 from tape.data.parser import Article
@@ -34,41 +35,31 @@ class LlmOnlineEngine(LlmEngine):
             self._response_model = self.get_response_model()
         return self._response_model
 
-    def __call__(self, article: Article, max_retries: int = 3) -> Optional[LlmResponseModel]:
-        
+    def __call__(self, article: Article) -> Optional[LlmResponseModel]:
         messages = [
             dict(role='system', content=self.system_message),
             dict(role='user', content='Title: {}\nAbstract: {}'.format(article.title, article.abstract))
         ]
-        max_retries = self.args.max_retries or max_retries
         response = None
-        retries = 0
-        backoff_time = 1  # Initial backoff time in seconds
-
-        while retries < max_retries:
-            try:
-                response = self._get_response(
-                    model=self.args.model,
-                    messages=messages,
-                    response_model=self.response_model,
-                    **self.args.sampling_kwargs
-                )
-                break
-            except Exception as e:
-                wait_time = backoff_time * (2 ** retries) + random.uniform(0, 1) # Exponential backoff with jitter
-                time.sleep(wait_time)
-                retries += 1
-                print(f"Retry {retries}/{max_retries} after exception: {e}. Waiting {wait_time:.2f} seconds.")
-
-        if retries == max_retries and response is None:
-            print("Max retries reached. Failed to get a successful response.")
+        rpm = self.args.rate_limit_per_minute
+        try:
+            response = self._completion_with_backoff(
+                model=self.args.model,
+                messages=messages,
+                response_model=self.response_model,
+                delay=60.0 / rpm if rpm else 0, # Adding delay to a request to avoid hitting the rate limit
+                **self.args.sampling_kwargs
+            )
+        except Exception as e:
+            print(f'Max retries reached. Failed to get a successful response. Error: {e}')
 
         return response
 
+    @retry(wait=wait_random_exponential(min=1, max=60), stop=stop_after_attempt(6))
     @llm_responses_cache
-    def _get_response(self, **kwargs):
+    def _completion_with_backoff(self, **kwargs):
         return self.client.chat.completions.create_with_completion(**kwargs)
-    
+        
     def get_responses_from_articles(self, articles: List[Article]) -> List[LlmResponseModel]:
         responses = []
         for article in tqdm(articles, total=len(articles), desc='Fetching LLM responses'):

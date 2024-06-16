@@ -19,7 +19,8 @@ llm_online_engine:
   sampling_kwargs:
     max_tokens: 500 # LLM completion tokens
   # Pick any provider model from https://litellm.vercel.app/docs/providers
-  #model: groq/mixtral-8x7b-32768 
+  #model: anthropic/claude-3-haiku-20240307 
+  #rate_limit_per_minute: 5 # https://docs.anthropic.com/en/api/rate-limits#rate-limits
   model: huggingface/meta-llama/Meta-Llama-3-8B-Instruct
 
 # llm_offline_engine:

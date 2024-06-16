@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Optional, Literal, Tuple
+from typing import Optional, Literal
 
 import torch
 from torch_geometric.data import Data
@@ -12,8 +12,16 @@ from tape.data.dataset import GraphDataset
 class GnnTrainerArgs:
     epochs: int
     lr: float
-    weight_decay: Optional[float] = 0.0
+    weight_decay: float = 0.0
+    early_stopping_patience: int = 50
     device: Optional[str] = None
+
+
+@dataclass
+class GnnTrainerOutput:
+    loss: float
+    accuracy: float
+    logits: torch.Tensor
 
 
 class GnnTrainer:
@@ -38,22 +46,33 @@ class GnnTrainer:
         self.optimizer = torch.optim.Adam(self.model.parameters(), lr=trainer_args.lr, weight_decay=trainer_args.weight_decay)
         self.criterion = torch.nn.CrossEntropyLoss()
 
-    def train(self) -> None:
-        
-        for epoch in range(1, self.trainer_args.epochs + 1):
-            train_loss, train_acc = self._train_eval(self.dataset, stage='train')
-            val_loss, val_acc = self._train_eval(self.dataset, stage='val')
-            print(
-                f'Epoch: {epoch:03d} | Train loss: {train_loss:.4f}, '
-                f'Val loss: {val_loss:.4f}, Train accuracy: {train_acc:.4f}, '
-                f'Val accuracy: {val_acc:.4f}'
-            )
+    def train(self) -> GnnTrainerOutput:
+        patience = self.trainer_args.early_stopping_patience
+        best_val_loss = float('inf')
+        epochs_without_improvement = 0
 
-        test_loss, test_acc = self._train_eval(self.dataset, stage='test')
-        print(f'Test loss: {test_loss:.4f} | Test accuracy: {test_acc:.4f}')
+        for epoch in range(1, self.trainer_args.epochs + 1):
+            train_output = self._train_eval(self.dataset, stage='train')
+            val_output = self._train_eval(self.dataset, stage='val')
+            print(
+                f'Epoch: {epoch:03d} | Train loss: {train_output.loss:.4f}, '
+                f'Val loss: {val_output.loss:.4f}, Train accuracy: {train_output.accuracy:.4f}, '
+                f'Val accuracy: {val_output.accuracy:.4f}'
+            )
+            if val_output.loss < best_val_loss:
+                best_val_loss = val_output.loss
+                epochs_without_improvement = 0
+            else:
+                epochs_without_improvement += 1
+                
+            if epochs_without_improvement >= patience:
+                print(f'Early stopping on epoch {epoch} due to no improvement in validation loss for {patience} epochs.')
+                break
+
+        output = self._train_eval(self.dataset, stage='test')
+        return output
     
-    def _train_eval(self, data: Data, stage: Literal['train', 'val', 'test']) -> Tuple[float, float]:
-        
+    def _train_eval(self, data: Data, stage: Literal['train', 'val', 'test']):
         if stage == 'train':
             self.model.train()
         else:
@@ -63,21 +82,20 @@ class GnnTrainer:
         mask = getattr(data, f'{stage}_mask')
         if stage == 'train':
             self.optimizer.zero_grad()
-            out = self.model(data.x, data.edge_index)
-            loss = self.criterion(out[mask], data.y[mask].flatten())
+            logits = self.model(data.x, data.edge_index)
+            loss = self.criterion(logits[mask], data.y[mask].flatten())
             loss.backward()
             self.optimizer.step()
         else:
             with torch.inference_mode():
-                out = self.model(data.x, data.edge_index)
-            loss = self.criterion(out[mask], data.y[mask].flatten())
+                logits = self.model(data.x, data.edge_index)
+            loss = self.criterion(logits[mask], data.y[mask].flatten())
         
-        accuracy = GnnTrainer.compute_accuracy(out, data.y, mask)
-        return float(loss), accuracy
+        accuracy = GnnTrainer.compute_accuracy(logits, data.y, mask)
+        return GnnTrainerOutput(loss=float(loss), accuracy=accuracy, logits=logits)
 
     @staticmethod
-    def compute_accuracy(out: torch.Tensor, y_true: torch.Tensor, mask: torch.Tensor) -> torch.Tensor:
-        
-        y_pred = out.argmax(dim=1)
+    def compute_accuracy(logits: torch.Tensor, y_true: torch.Tensor, mask: torch.Tensor) -> float:
+        y_pred = logits.argmax(dim=1)
         correct = y_pred[mask] == y_true[mask]
         return int(correct.sum()) / int(mask.sum())

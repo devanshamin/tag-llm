@@ -1,13 +1,14 @@
 import os
 import json
+from pathlib import Path
 from abc import abstractmethod
 from functools import partial
 from typing import List, Dict, Union
 
 from tqdm import tqdm
-
 from vllm import LLM, SamplingParams
 from transformers import AutoTokenizer
+from jinja2 import Environment, FileSystemLoader
 
 from tape.data.parser import Article
 from tape.data.llm.engine import LlmEngine, LlmOfflineEngineArgs, LlmResponseModel
@@ -20,7 +21,7 @@ class LlmOfflineEngine(LlmEngine):
         # Update `huggingface_hub` default cache dir
         os.environ['HF_HOME'] = args.cache_dir
         self.tokenizer = AutoTokenizer.from_pretrained(
-            model=args.model, 
+            pretrained_model_name_or_path=args.model, 
             cache_dir=args.cache_dir
         )
         self.llm = LLM(model=args.model, **(args.engine_kwargs or {}))
@@ -100,3 +101,10 @@ class LlmOfflineEngine(LlmEngine):
                 if result and result['output']:
                     responses[idx] = LlmResponseModel(**result['output'])
         return responses
+    
+    def load_system_prompt_from_template(self, **kwargs) -> str:
+        file_loader = FileSystemLoader(Path(__file__, '..').resolve())
+        env = Environment(loader=file_loader)
+        template = env.get_template('prompt.jinja')
+        prompt = template.render(**kwargs)
+        return prompt

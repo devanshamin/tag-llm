@@ -33,7 +33,6 @@ llm_online_engine:
 #   model: meta-llama/Meta-Llama-3-8B-Instruct
 #   batch_size: 100
 #   engine_kwargs:
-#     download_dir: ${cache_dir}
 #     seed: ${seed}
 #     max_model_len: 8192
 

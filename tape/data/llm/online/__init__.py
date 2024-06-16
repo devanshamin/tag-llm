@@ -1,4 +1,4 @@
-from .ogb_arxiv import LlmOgbArxivResponses
+from .ogbn_arxiv import LlmOgbnArxivResponses
 from .pubmed import LlmPubmedResponses
 
-__all__ = ['LlmOgbArxivResponses', 'LlmPubmedResponses']
+__all__ = ['LlmOgbnArxivResponses', 'LlmPubmedResponses']

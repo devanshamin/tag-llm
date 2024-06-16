@@ -7,6 +7,7 @@ from typing import List, Optional
 import instructor
 from tqdm import tqdm
 from litellm import completion
+from torch_geometric.template import module_from_template
 
 from tape.config import DatasetName
 from tape.data.parser import Article
@@ -18,6 +19,7 @@ class LlmOnlineEngine(LlmEngine):
     
     def __init__(self, args: LlmOnlineEngineArgs, dataset_name: DatasetName) -> None:
         super().__init__(args)
+        self.dataset_name = dataset_name.value
         self.client = instructor.from_litellm(completion)
         setup_cache(cache_dir=Path(args.cache_dir) / f'tape_llm_responses/{dataset_name.value}')
         self._response_model = None
@@ -75,3 +77,13 @@ class LlmOnlineEngine(LlmEngine):
             response.label = response.label.value # Convert Enum to str
             responses.append(response)
         return responses
+    
+    def load_response_model_from_template(self, **kwargs) -> LlmResponseModel:
+        uid = '%06x' % random.randrange(16**6)
+        module = module_from_template(
+            module_name=f'response_model-{self.dataset_name}-{uid}',
+            template_path=Path(__file__, '..', 'response_model.jinja'),
+            tmp_dirname='response_model',
+            **kwargs
+        )
+        return module.Classification

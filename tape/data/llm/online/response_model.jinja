@@ -16,11 +16,7 @@ class Classification(LlmResponseModel):
     label: List[PaperCategory] = Field(
         ..., 
         description="{{ label_description }}",
-        examples=[
-{%- for example in label_examples %}
-            {{ example }},
-{%- endfor %}
-        ]
+        examples={{ label_examples }}
     )
     reason: str = Field(
         ..., 
@@ -28,9 +24,5 @@ class Classification(LlmResponseModel):
             'Give a detailed explanation with quotes from the abstract explaining why '
             'the paper is related to the chosen label based on the ranking.'
         ),
-        examples=[
-{%- for example in reason_examples %}
-            "{{ example }}",
-{%- endfor %}
-        ]
+        examples={{ reason_examples }}
     )

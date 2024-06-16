@@ -75,11 +75,12 @@ class GraphDataset:
     def update_node_features(self) -> None:
         """Update original node features with Language Model (LM) features."""
 
-        print('Generating node features...')
+        ftype = self.feature_type
+        print(f"Generating node features for feature type '{ftype.name} ({ftype.value})'...")
         graph = self._parser.graph
         articles = graph.articles
 
-        if self.feature_type == FeatureType.TITLE_ABSTRACT:
+        if ftype == FeatureType.TITLE_ABSTRACT:
             sentences = [
                 f'Title: {article.title}\nAbstract: {article.abstract}'
                 for article in articles
@@ -90,7 +91,7 @@ class GraphDataset:
         else:
             responses = self._get_llm_responses()
             
-            if self.feature_type == FeatureType.EXPLANATION:
+            if ftype == FeatureType.EXPLANATION:
                 features = self.lm_encoder(sentences=[resp.reason for resp in responses])
                 features = torch.stack(features)
                 self.lm_encoder.save_cache()
@@ -133,10 +134,10 @@ class GraphDataset:
 
             args = self.llm_offline_engine_args
 
-        if self.dataset_name == 'pubmed':
+        if self.dataset_name == DatasetName.PUBMED:
             cls = engine.LlmPubmedResponses
-        elif self.dataset_name == 'ogb_arxiv':
-            cls = engine.LlmOgbArxivResponses
+        elif self.dataset_name == DatasetName.OGBN_ARXIV:
+            cls = engine.LlmOgbnArxivResponses
 
         llm = cls(args=args, class_id_to_label=graph.class_id_to_label)
         responses = llm.get_responses_from_articles(articles=graph.articles) 

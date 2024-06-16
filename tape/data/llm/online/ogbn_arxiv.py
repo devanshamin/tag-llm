@@ -5,7 +5,7 @@ from tape.data.llm.online.base import LlmOnlineEngine
 from tape.data.llm.engine import LlmOnlineEngineArgs, LlmResponseModel
 
 
-class LlmOgbArxivResponses(LlmOnlineEngine):
+class LlmOgbnArxivResponses(LlmOnlineEngine):
 
     def __init__(self, args: LlmOnlineEngineArgs, class_id_to_label: Dict) -> None:        
         super().__init__(args=args, dataset_name=DatasetName.OGBN_ARXIV)

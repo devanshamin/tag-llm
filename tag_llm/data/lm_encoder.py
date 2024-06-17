@@ -9,7 +9,7 @@ from safetensors import safe_open
 from safetensors.torch import save_file
 
 from tag_llm.config import DatasetName, FeatureType
-from tag_llm.data.utils import generate_string_hash
+from tag_llm.utils import generate_string_hash
 
 warnings.filterwarnings('ignore') # Ignore HuggingFace libraries warnings
 

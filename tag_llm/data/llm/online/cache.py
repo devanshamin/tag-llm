@@ -8,7 +8,7 @@ import diskcache
 from pydantic import BaseModel
 from litellm import ModelResponse
 
-from tape.data.utils import generate_string_hash
+from tag_llm.data.utils import generate_string_hash
 
 
 CACHE = None

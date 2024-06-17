@@ -8,7 +8,7 @@ import gdown
 from torch_geometric.data import Data
 from torch_geometric.datasets import Planetoid
 
-from tape.data.parser.base import Parser, Article
+from tag_llm.data.parser.base import Parser, Article
 
 
 class PubmedParser(Parser):

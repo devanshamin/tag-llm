@@ -9,10 +9,10 @@ from litellm import completion
 from torch_geometric.template import module_from_template
 from tenacity import retry, stop_after_attempt, wait_random_exponential
 
-from tape.config import DatasetName
-from tape.data.parser import Article
-from tape.data.llm.online.cache import setup_cache, llm_responses_cache
-from tape.data.llm.engine import LlmEngine, LlmOnlineEngineArgs, LlmResponseModel
+from tag_llm.config import DatasetName
+from tag_llm.data.parser import Article
+from tag_llm.data.llm.online.cache import setup_cache, llm_responses_cache
+from tag_llm.data.llm.engine import LlmEngine, LlmOnlineEngineArgs, LlmResponseModel
 
 
 class LlmOnlineEngine(LlmEngine):

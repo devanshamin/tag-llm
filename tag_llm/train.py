@@ -7,12 +7,12 @@ import torch
 import pandas as pd
 from jsonargparse import ArgumentParser, ActionConfigFile
 
-from tape.config import DatasetName, FeatureType
-from tape.data.lm_encoder import LmEncoderArgs
-from tape.data.dataset import GraphDataset
-from tape.gnn_model import NodeClassifierArgs
-from tape.trainer.gnn_trainer import GnnTrainerArgs, GnnTrainer
-from tape.data.llm.engine import LlmOnlineEngineArgs, LlmOfflineEngineArgs
+from tag_llm.config import DatasetName, FeatureType
+from tag_llm.data.lm_encoder import LmEncoderArgs
+from tag_llm.data.dataset import GraphDataset
+from tag_llm.gnn_model import NodeClassifierArgs
+from tag_llm.trainer.gnn_trainer import GnnTrainerArgs, GnnTrainer
+from tag_llm.data.llm.engine import LlmOnlineEngineArgs, LlmOfflineEngineArgs
 
 
 def get_parser() -> ArgumentParser:
@@ -65,8 +65,7 @@ def _train(args):
     return graph_dataset, test_output
 
 
-if __name__ == '__main__':
-
+def main():
     parser = get_parser()
     args = parser.parse_args()
     args = parser.instantiate_classes(args)

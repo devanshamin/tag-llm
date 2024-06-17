@@ -11,7 +11,7 @@ import torch_geometric.transforms as T
 from torch_geometric.data import Data
 from ogb.nodeproppred import PygNodePropPredDataset
 
-from tape.data.parser.base import Parser, Article
+from tag_llm.data.parser.base import Parser, Article
 
 
 class OgbnArxivParser(Parser):

@@ -6,7 +6,7 @@ from typing import Union, Optional, List, Dict
 from pydantic import BaseModel
 from dotenv import load_dotenv
 
-from tape.data.parser import Article
+from tag_llm.data.parser import Article
 
 load_dotenv()
 

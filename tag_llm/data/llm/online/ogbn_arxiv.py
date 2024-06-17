@@ -1,8 +1,8 @@
 from typing import Dict
 
-from tape.config import DatasetName
-from tape.data.llm.online.base import LlmOnlineEngine
-from tape.data.llm.engine import LlmOnlineEngineArgs, LlmResponseModel
+from tag_llm.config import DatasetName
+from tag_llm.data.llm.online.base import LlmOnlineEngine
+from tag_llm.data.llm.engine import LlmOnlineEngineArgs, LlmResponseModel
 
 
 class LlmOgbnArxivResponses(LlmOnlineEngine):

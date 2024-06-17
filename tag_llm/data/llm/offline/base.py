@@ -10,8 +10,8 @@ from vllm import LLM, SamplingParams
 from transformers import AutoTokenizer
 from jinja2 import Environment, FileSystemLoader
 
-from tape.data.parser import Article
-from tape.data.llm.engine import LlmEngine, LlmOfflineEngineArgs, LlmResponseModel
+from tag_llm.data.parser import Article
+from tag_llm.data.llm.engine import LlmEngine, LlmOfflineEngineArgs, LlmResponseModel
 
 
 class LlmOfflineEngine(LlmEngine):

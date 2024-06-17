@@ -3,10 +3,10 @@ from typing import Optional, Union
 import torch
 from torch_geometric.data import Data
 
-from tape.data import parser
-from tape.config import DatasetName, FeatureType
-from tape.data.lm_encoder import LmEncoder, LmEncoderArgs
-from tape.data.llm.engine import LlmOnlineEngineArgs, LlmOfflineEngineArgs
+from tag_llm.data import parser
+from tag_llm.config import DatasetName, FeatureType
+from tag_llm.data.lm_encoder import LmEncoder, LmEncoderArgs
+from tag_llm.data.llm.engine import LlmOnlineEngineArgs, LlmOfflineEngineArgs
 
 
 class GraphDataset:
@@ -126,11 +126,11 @@ class GraphDataset:
         graph = self._parser.graph
 
         if self.llm_online_engine_args:
-            from tape.data.llm import online as engine
+            from tag_llm.data.llm import online as engine
 
             args = self.llm_online_engine_args
         else:
-            from tape.data.llm import offline as engine
+            from tag_llm.data.llm import offline as engine
 
             args = self.llm_offline_engine_args
 

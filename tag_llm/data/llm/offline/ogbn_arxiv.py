@@ -1,7 +1,7 @@
 from typing import Dict
 
-from tape.data.llm.offline.base import LlmOfflineEngine
-from tape.data.llm.engine import LlmOfflineEngineArgs
+from tag_llm.data.llm.offline.base import LlmOfflineEngine
+from tag_llm.data.llm.engine import LlmOfflineEngineArgs
 
 
 class LlmOgbnArxivResponses(LlmOfflineEngine):

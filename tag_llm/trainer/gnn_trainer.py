@@ -4,8 +4,8 @@ from typing import Optional, Literal
 import torch
 from torch_geometric.data import Data
 
-from tape.gnn_model import NodeClassifierArgs, NodeClassifier
-from tape.data.dataset import GraphDataset
+from tag_llm.gnn_model import NodeClassifierArgs, NodeClassifier
+from tag_llm.data.dataset import GraphDataset
 
 
 @dataclass

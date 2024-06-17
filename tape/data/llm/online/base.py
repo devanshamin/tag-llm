@@ -1,4 +1,3 @@
-import time
 import random
 from pathlib import Path
 from abc import abstractmethod
@@ -73,7 +72,7 @@ class LlmOnlineEngine(LlmEngine):
         uid = '%06x' % random.randrange(16**6)
         module = module_from_template(
             module_name=f'response_model-{self.dataset_name}-{uid}',
-            template_path=Path(__file__, '..', 'response_model.jinja'),
+            template_path=Path(__file__, '..').resolve() / 'response_model.jinja',
             tmp_dirname='response_model',
             **kwargs
         )

@@ -4,7 +4,7 @@ from dataclasses import dataclass
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torch_geometric.nn import conv
+from torch_geometric.nn import conv as conv_layers
 
 
 @dataclass
@@ -30,7 +30,7 @@ class NodeClassifier(torch.nn.Module):
         
         self.convs = nn.ModuleList()
         self.batch_norm = nn.ModuleList()
-        assert (conv_cls := getattr(conv, args.conv_layer, None))
+        assert (conv_cls := getattr(conv_layers, args.conv_layer, None))
         self.convs.append(conv_cls(args.in_channels, args.hidden_channels))
         for _ in range(args.num_layers - 2):
             self.convs.append(conv_cls(args.hidden_channels, args.hidden_channels))

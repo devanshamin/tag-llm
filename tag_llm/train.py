@@ -1,10 +1,10 @@
 import copy
-import time
 from typing import Optional
 from dataclasses import is_dataclass
 
 import torch
 import pandas as pd
+import numpy as np
 from jsonargparse import ArgumentParser, ActionConfigFile
 
 from tag_llm.config import DatasetName, FeatureType
@@ -13,6 +13,7 @@ from tag_llm.data.dataset import GraphDataset
 from tag_llm.gnn_model import NodeClassifierArgs
 from tag_llm.trainer.gnn_trainer import GnnTrainerArgs, GnnTrainer
 from tag_llm.data.llm.engine import LlmOnlineEngineArgs, LlmOfflineEngineArgs
+from tag_llm.utils import profile_execution
 
 
 def get_parser() -> ArgumentParser:
@@ -22,6 +23,7 @@ def get_parser() -> ArgumentParser:
     parser.add_argument('--feature_type', type=FeatureType)
     parser.add_argument('--cache_dir', type=str)
     parser.add_argument('--seed', type=int, default=42)
+    parser.add_argument('--seed_runs', type=Optional[int], default=None)
     parser.add_argument('--device', type=str, required=False)
     parser.add_argument('--lm_encoder', type=LmEncoderArgs)
     parser.add_argument('--llm_online_engine', type=Optional[LlmOnlineEngineArgs], default=None)
@@ -65,12 +67,8 @@ def _train(args):
     return graph_dataset, test_output
 
 
-def main():
-    parser = get_parser()
-    args = parser.parse_args()
-    args = parser.instantiate_classes(args)
-    start_time = time.perf_counter()
-    
+@profile_execution
+def _run(args):
     if args.feature_type == FeatureType.TAPE:
         logits = []
         pred_rows = []
@@ -98,13 +96,29 @@ def main():
         print()
         print(pd.DataFrame(pred_rows))
     else:
-        _, test_output = _train(args)
+        # Make sure the feature type used across config is consistent
+        _args = update_feature_type(args, feature_type=args.feature_type)
+        _, test_output = _train(_args)
+        test_acc = test_output.accuracy
         print(
             f'[Feature type: {args.feature_type.name} ({args.feature_type.value})] '
-            'Test accuracy: {test_output.accuracy:.4f}'
+            f'Test accuracy: {test_acc:.4f}'
         )
+    return test_acc
+
+
+def main():
+    parser = get_parser()
+    args = parser.parse_args()
+    args = parser.instantiate_classes(args)
     
-    execution_time = time.perf_counter() - start_time
-    minutes = int(execution_time // 60)
-    seconds = execution_time % 60
-    print(f'\nFinished execution in {minutes} minutes and {seconds:.2f} seconds.')
+    if args.seed_runs is None:
+        _run(args)
+    else:
+        test_accs = []
+        for seed in range(args.seed_runs):
+            args.seed = seed
+            test_acc = _run(args)
+            test_accs.append(test_acc)
+        ftype_str = f'{args.feature_type.name} ({args.feature_type.value})'
+        print(f'[Feature type: {ftype_str}] Test accuracy: {np.mean(test_accs):.4f} ± {np.std(test_accs):.4f}')

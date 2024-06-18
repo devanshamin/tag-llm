@@ -1,5 +1,5 @@
-from typing import Optional
 from dataclasses import dataclass
+from typing import Optional
 
 import torch
 import torch.nn as nn
@@ -21,13 +21,13 @@ class NodeClassifierArgs:
 class NodeClassifier(torch.nn.Module):
 
     def __init__(self, args: NodeClassifierArgs) -> None:
-        
+
         super().__init__()
         self.use_predictions = args.use_predictions
         if self.use_predictions:
             # Embedding lookup for each class (out_channels == num_classes)
             self.encoder = nn.Embedding(args.out_channels + 1, args.hidden_channels)
-        
+
         self.convs = nn.ModuleList()
         self.batch_norm = nn.ModuleList()
         assert (conv_cls := getattr(conv_layers, args.conv_layer, None))
@@ -52,13 +52,13 @@ class NodeClassifier(torch.nn.Module):
         if self.use_predictions:
             x = self.encoder(x)
             x = torch.flatten(x, start_dim=1)
-        
+
         for i, conv in enumerate(self.convs[:-1]):
             x = conv(x, edge_index)
             x = self.batch_norm[i](x)
             x = F.relu(x)
             x = F.dropout(x, p=self.dropout, training=self.training)
-        
+
         x = self.convs[-1](x, edge_index)
-        
+
         return x

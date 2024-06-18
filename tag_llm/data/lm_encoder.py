@@ -1,12 +1,12 @@
 import warnings
+from dataclasses import asdict, dataclass
 from pathlib import Path
-from dataclasses import dataclass, asdict
-from typing import Optional, List, Literal
+from typing import List, Literal, Optional
 
 import torch
-from tqdm import tqdm
 from safetensors import safe_open
 from safetensors.torch import save_file
+from tqdm import tqdm
 
 from tag_llm.config import DatasetName, FeatureType
 from tag_llm.utils import generate_string_hash
@@ -29,7 +29,7 @@ class SentenceTransformerArgs:
 @dataclass
 class LmEncoderArgs:
     dataset_name: DatasetName # Used for creating file name to save embeddings
-    feature_type: FeatureType # Used for creating file name to save embeddings 
+    feature_type: FeatureType # Used for creating file name to save embeddings
     model_name_or_path: str
     model_library: Literal['transformers', 'sentence_transformer']
     transformers_encoder_args: Optional[TransformersTokenizerArgs] = None
@@ -58,17 +58,17 @@ class LmEncoder:
         self._sent_hash_to_embedding = self._load_cache()
 
         if args.model_library == 'transformers':
-            from transformers import AutoTokenizer, AutoModel
+            from transformers import AutoModel, AutoTokenizer
 
             self.model = AutoModel.from_pretrained(args.model_name_or_path, cache_dir=cache_dir).to(self.device)
             self.tokenizer = AutoTokenizer.from_pretrained(args.model_name_or_path, cache_dir=cache_dir)
         elif args.model_library == 'sentence_transformer':
             from sentence_transformers import SentenceTransformer
-            
+
             self.model = SentenceTransformer(args.model_name_or_path, device=self.device, cache_folder=cache_dir)
         else:
-            raise Exception(f'Invalid model library!')
-    
+            raise Exception('Invalid model library!')
+
     def _load_cache(self):
         input_hash_to_embedding = {}
         if self.embd_cache_path.exists():
@@ -85,11 +85,11 @@ class LmEncoder:
     @torch.inference_mode()
     def _hf_encoder(self, sentences: List[str], **kwargs):
         encoded_sentences = self.tokenizer(
-            sentences, 
-            truncation=kwargs.get('truncation', True), 
-            padding=kwargs.get('padding', True), 
-            return_tensors='pt', 
-            max_length=kwargs.get('max_length', 512), 
+            sentences,
+            truncation=kwargs.get('truncation', True),
+            padding=kwargs.get('padding', True),
+            return_tensors='pt',
+            max_length=kwargs.get('max_length', 512),
         ).to(self.device)
         # Encode the queries (use the [CLS] last hidden states as the representations)
         embeddings = self.model(**encoded_sentences).last_hidden_state[:, 0, :]

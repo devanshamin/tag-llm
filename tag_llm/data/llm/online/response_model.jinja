@@ -14,12 +14,12 @@ class PaperCategory(str, Enum):
 
 class Classification(LlmResponseModel):
     label: List[PaperCategory] = Field(
-        ..., 
+        ...,
         description="{{ label_description }}",
         examples={{ label_examples }}
     )
     reason: str = Field(
-        ..., 
+        ...,
         description=(
             'Give a detailed explanation with quotes from the abstract explaining why '
             'the paper is related to the chosen label based on the ranking.'

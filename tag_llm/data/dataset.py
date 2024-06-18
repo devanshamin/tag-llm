@@ -3,10 +3,10 @@ from typing import Optional, Union
 import torch
 from torch_geometric.data import Data
 
-from tag_llm.data import parser
 from tag_llm.config import DatasetName, FeatureType
+from tag_llm.data import parser
+from tag_llm.data.llm.engine import LlmOfflineEngineArgs, LlmOnlineEngineArgs
 from tag_llm.data.lm_encoder import LmEncoder, LmEncoderArgs
-from tag_llm.data.llm.engine import LlmOnlineEngineArgs, LlmOfflineEngineArgs
 
 
 class GraphDataset:
@@ -22,7 +22,7 @@ class GraphDataset:
         seed: Optional[int] = 42,
         cache_dir: str = '.cache'
     ) -> None:
-        
+
         self.seed = seed
         self.dataset_name = dataset_name
         self.feature_type = feature_type
@@ -32,25 +32,25 @@ class GraphDataset:
 
         assert llm_online_engine_args or llm_offline_engine_args, \
             'LLM online/offline engine arguments cannot be empty! Please provide either one of them.'
-        
+
         lm_encoder_args.device = device
         self.lm_encoder = LmEncoder(args=lm_encoder_args)
 
         self._parser = None
         self._dataset = None
         self._topk = None
-    
+
     @property
     def dataset(self) -> Data:
         if self._dataset is None:
             self.load_dataset()
             self.update_node_features()
         return self._dataset
-    
+
     @property
     def num_classes(self) -> int:
         return self._parser.graph.n_classes
-    
+
     @property
     def topk(self) -> int:
         """TopK ranked LLM predictions."""
@@ -67,7 +67,7 @@ class GraphDataset:
             cls = parser.OgbnArxivParser
         else:
             raise ValueError(f'Invalid dataset name "{self.dataset_name}"!')
-        
+
         self._parser = cls(seed=self.seed, cache_dir=self.cache_dir)
         self._parser.parse()
         self._dataset = self._parser.graph.dataset
@@ -90,7 +90,7 @@ class GraphDataset:
             self.lm_encoder.save_cache()
         else:
             responses = self._get_llm_responses()
-            
+
             if ftype == FeatureType.EXPLANATION:
                 features = self.lm_encoder(sentences=[resp.reason for resp in responses])
                 features = torch.stack(features)
@@ -98,7 +98,7 @@ class GraphDataset:
             else:
                 # FeatureType.PREDICTION
                 label2id = {
-                    v['label'] if isinstance(v, dict) else v: k 
+                    v['label'] if isinstance(v, dict) else v: k
                     for k, v in graph.class_id_to_label.items()
                 }
                 features = torch.zeros((self._dataset.num_nodes, self.topk))
@@ -118,11 +118,11 @@ class GraphDataset:
                     # During GNN training, the features tensor is passed to an nn.Embedding layer.
                     # If we had topk=3 and preds = [0], initializing the features with zeros would make it difficult to distinguish
                     # between "no prediction" and "prediction of class 0". To denote that the class is present, we increment the value by 1.
-        
+
         self._dataset.x = features
-    
+
     def _get_llm_responses(self):
-        
+
         graph = self._parser.graph
 
         if self.llm_online_engine_args:
@@ -140,5 +140,5 @@ class GraphDataset:
             cls = engine.LlmOgbnArxivResponses
 
         llm = cls(args=args, class_id_to_label=graph.class_id_to_label)
-        responses = llm.get_responses_from_articles(articles=graph.articles) 
+        responses = llm.get_responses_from_articles(articles=graph.articles)
         return responses

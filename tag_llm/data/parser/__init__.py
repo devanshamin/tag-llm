@@ -1,5 +1,5 @@
 from .base import Article
-from .pubmed import PubmedParser
 from .ogbn_arxiv import OgbnArxivParser
+from .pubmed import PubmedParser
 
 __all__ = ['Article', 'PubmedParser', 'OgbnArxivParser']

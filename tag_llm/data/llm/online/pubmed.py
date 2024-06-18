@@ -1,11 +1,11 @@
-from typing import List, Dict
+from typing import Dict, List
 
 from datasets import load_dataset
 
 from tag_llm.config import DatasetName
-from tag_llm.data.parser import Article
-from tag_llm.data.llm.online.base import LlmOnlineEngine
 from tag_llm.data.llm.engine import LlmOnlineEngineArgs, LlmResponseModel
+from tag_llm.data.llm.online.base import LlmOnlineEngine
+from tag_llm.data.parser import Article
 
 
 class LlmPubmedResponses(LlmOnlineEngine):
@@ -51,14 +51,14 @@ class LlmPubmedResponses(LlmOnlineEngine):
     def get_responses_from_articles(self, articles: List[Article]) -> List[LlmResponseModel]:
         if self.args.model == 'huggingface/meta-llama/Meta-Llama-3-8B-Instruct':
             dataset = load_dataset(
-                "devanshamin/PubMedDiabetes-LLM-Predictions", 
-                cache_dir=self.args.cache_dir, 
+                "devanshamin/PubMedDiabetes-LLM-Predictions",
+                cache_dir=self.args.cache_dir,
                 split='train'
             )
             responses = []
             for sample in dataset:
                 response = self.response_model(
-                    label=sample['predicted_ranked_labels'].split('; '), 
+                    label=sample['predicted_ranked_labels'].split('; '),
                     reason=sample['explanation']
                 )
                 responses.append(response)

@@ -1,5 +1,5 @@
-import time
 import hashlib
+import time
 from typing import Callable
 
 
@@ -13,7 +13,7 @@ def profile_execution(func: Callable) -> Callable:
         seconds = execution_time % 60
         print(f"Function '{func.__name__}' executed in {minutes} minutes and {seconds:.2f} seconds.")
         return result
-    
+
     return wrapper
 
 

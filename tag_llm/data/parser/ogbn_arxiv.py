@@ -1,17 +1,17 @@
 import re
 import zipfile
 from pathlib import Path
-from typing import Dict, Optional, List
+from typing import Dict, List, Optional
 
-import torch
 import gdown
-import requests
 import pandas as pd
+import requests
+import torch
 import torch_geometric.transforms as T
-from torch_geometric.data import Data
 from ogb.nodeproppred import PygNodePropPredDataset
+from torch_geometric.data import Data
 
-from tag_llm.data.parser.base import Parser, Article
+from tag_llm.data.parser.base import Article, Parser
 
 
 class OgbnArxivParser(Parser):
@@ -57,14 +57,14 @@ class OgbnArxivParser(Parser):
                         for chunk in response.iter_content(32_768):
                             if chunk:
                                 f.write(chunk)
-        
+
         return dtype_to_path
 
 
 class OgbArxivGraph:
 
     def __init__(self, dir_path: Path, cache_dir: Path) -> None:
-        
+
         self.dir_path = dir_path
         self.cache_dir = cache_dir
 
@@ -89,53 +89,52 @@ class OgbArxivGraph:
         self.split = dataset.get_idx_split()
 
         data = dataset[0]
-        
+
         train_mask = torch.zeros(data.num_nodes).bool()
         train_mask[self.split['train']] = True
         data.train_mask = train_mask
-        
+
         val_mask = torch.zeros(data.num_nodes).bool()
         val_mask[self.split['valid']] = True
         data.val_mask = val_mask
-        
+
         test_mask = torch.zeros(data.num_nodes).bool()
         test_mask[self.split['test']] = True
         data.test_mask = test_mask
-        
+
         data.edge_index = data.adj_t.to_symmetric()
-        
+
         self.dataset = data
 
     def _load_articles(self):
 
         mapping_df = pd.read_csv(
             self.cache_dir / 'ogbn_arxiv/mapping/nodeidx2paperid.csv.gz',
-            skiprows=1, 
-            names=['node_idx', 'paper_id'], 
+            skiprows=1,
+            names=['node_idx', 'paper_id'],
             compression='gzip'
         )
         title_abstract_df = pd.read_table(
-            self.dir_path, 
-            header=None, 
-            names=['paper_id', 'title', 'abstract'], 
+            self.dir_path,
+            header=None,
+            names=['paper_id', 'title', 'abstract'],
             compression='gzip'
         )
         df = mapping_df.astype(dict(paper_id=str)).join(title_abstract_df.set_index('paper_id'), on='paper_id')
         self.articles = []
         for row in df.itertuples(index=False):
             self.articles.append(Article(paper_id=row.paper_id, title=row.title, abstract=row.abstract))
-    
+
     def _load_class_label_mapping(self):
         mapping_df = pd.read_csv(
             self.cache_dir / 'ogbn_arxiv/mapping/labelidx2arxivcategeory.csv.gz',
-            skiprows=1, 
-            names=['label_id', 'label'], 
+            skiprows=1,
+            names=['label_id', 'label'],
             compression='gzip'
         )
         class_id_to_label = {}
         arxiv_cs_categories_df = pd.DataFrame(OgbArxivGraph.fetch_arxiv_category_taxonomy())
         for row in mapping_df.itertuples(index=False):
-            label = row.label.replace('arxiv cs ', 'cs.').strip().upper().replace('CS', 'cs')
             class_id_to_label[row.label_id] = arxiv_cs_categories_df.query('label == @label').iloc[0].to_dict()
         return class_id_to_label
 

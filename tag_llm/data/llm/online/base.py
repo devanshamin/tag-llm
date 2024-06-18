@@ -1,29 +1,30 @@
 import random
-from pathlib import Path
 from abc import abstractmethod
+from pathlib import Path
 from typing import List, Optional
 
 import instructor
-from tqdm import tqdm
 from litellm import completion
-from torch_geometric.template import module_from_template
 from tenacity import retry, stop_after_attempt, wait_random_exponential
+from torch_geometric.template import module_from_template
+from tqdm import tqdm
 
 from tag_llm.config import DatasetName
+from tag_llm.data.llm.engine import (LlmEngine, LlmOnlineEngineArgs,
+                                     LlmResponseModel)
+from tag_llm.data.llm.online.cache import llm_responses_cache, setup_cache
 from tag_llm.data.parser import Article
-from tag_llm.data.llm.online.cache import setup_cache, llm_responses_cache
-from tag_llm.data.llm.engine import LlmEngine, LlmOnlineEngineArgs, LlmResponseModel
 
 
 class LlmOnlineEngine(LlmEngine):
-    
+
     def __init__(self, args: LlmOnlineEngineArgs, dataset_name: DatasetName) -> None:
         super().__init__(args)
         self.dataset_name = dataset_name.value
         self.client = instructor.from_litellm(completion)
         setup_cache(cache_dir=Path(args.cache_dir) / f'tape_llm_responses/{dataset_name.value}')
         self._response_model = None
-    
+
     @abstractmethod
     def get_response_model(self) -> LlmResponseModel:
         pass
@@ -58,7 +59,7 @@ class LlmOnlineEngine(LlmEngine):
     @llm_responses_cache
     def _completion_with_backoff(self, **kwargs):
         return self.client.chat.completions.create_with_completion(**kwargs)
-        
+
     def get_responses_from_articles(self, articles: List[Article]) -> List[LlmResponseModel]:
         responses = []
         for article in tqdm(articles, total=len(articles), desc='Fetching LLM responses'):
@@ -67,7 +68,7 @@ class LlmOnlineEngine(LlmEngine):
             response.label = response.label.value # Convert Enum to str
             responses.append(response)
         return responses
-    
+
     def load_response_model_from_template(self, **kwargs) -> LlmResponseModel:
         uid = '%06x' % random.randrange(16**6)
         module = module_from_template(

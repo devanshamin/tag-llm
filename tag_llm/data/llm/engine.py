@@ -1,10 +1,10 @@
-from pathlib import Path
+from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from abc import abstractmethod, ABC
-from typing import Union, Optional, List, Dict
+from pathlib import Path
+from typing import Dict, List, Optional, Union
 
-from pydantic import BaseModel
 from dotenv import load_dotenv
+from pydantic import BaseModel
 
 from tag_llm.data.parser import Article
 
@@ -38,11 +38,11 @@ class LlmResponseModel(BaseModel, ABC):
 
 class LlmEngine(ABC):
     def __init__(
-        self, 
+        self,
         args: Union[LlmOnlineEngineArgs, LlmOfflineEngineArgs]
     ) -> None:
         self.args = args
-    
+
     @abstractmethod
     def __call__(self) -> Optional[LlmResponseModel]:
         pass

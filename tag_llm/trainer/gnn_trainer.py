@@ -1,11 +1,11 @@
 from dataclasses import dataclass
-from typing import Optional, Literal
+from typing import Literal, Optional
 
 import torch
 from torch_geometric.data import Data
 
-from tag_llm.gnn_model import NodeClassifierArgs, NodeClassifier
 from tag_llm.data.dataset import GraphDataset
+from tag_llm.gnn_model import NodeClassifier, NodeClassifierArgs
 
 
 @dataclass
@@ -27,7 +27,7 @@ class GnnTrainerOutput:
 class GnnTrainer:
 
     def __init__(self, trainer_args: GnnTrainerArgs, graph_dataset: GraphDataset, model_args: NodeClassifierArgs) -> None:
-        
+
         self.trainer_args = trainer_args
         self.dataset: Data = graph_dataset.dataset
         self.device = trainer_args.device or ('cuda' if torch.cuda.is_available() else 'cpu')
@@ -64,20 +64,20 @@ class GnnTrainer:
                 epochs_without_improvement = 0
             else:
                 epochs_without_improvement += 1
-                
+
             if epochs_without_improvement >= patience:
                 print(f'Early stopping on epoch {epoch} due to no improvement in validation loss for {patience} epochs.')
                 break
 
         output = self._train_eval(self.dataset, stage='test')
         return output
-    
+
     def _train_eval(self, data: Data, stage: Literal['train', 'val', 'test']):
         if stage == 'train':
             self.model.train()
         else:
             self.model.eval()
-        
+
         data = data.to(self.device)
         mask = getattr(data, f'{stage}_mask')
         if stage == 'train':
@@ -90,7 +90,7 @@ class GnnTrainer:
             with torch.inference_mode():
                 logits = self.model(data.x, data.edge_index)
             loss = self.criterion(logits[mask], data.y[mask].flatten())
-        
+
         accuracy = GnnTrainer.compute_accuracy(logits, data.y, mask)
         return GnnTrainerOutput(loss=float(loss), accuracy=accuracy, logits=logits)
 

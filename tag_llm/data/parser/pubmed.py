@@ -3,17 +3,17 @@ import zipfile
 from pathlib import Path
 from typing import Dict, List, Optional
 
-import torch
 import gdown
+import torch
 from torch_geometric.data import Data
 from torch_geometric.datasets import Planetoid
 
-from tag_llm.data.parser.base import Parser, Article
+from tag_llm.data.parser.base import Article, Parser
 
 
 class PubmedParser(Parser):
     """Parser for [PubMed Diabetes](https://linqs.org/datasets/#pubmed-diabetes) dataset."""
-    
+
     urls = {
         'original': 'https://drive.google.com/file/d/1sYZX-jP6H8OkopVa9cp8-KXdEti5ki_W/view?usp=sharing',
         'llm_responses': 'https://drive.google.com/file/d/166waPAjUwu7EWEvMJ0heflfp0-4EvrZS/view?usp=sharing',
@@ -23,10 +23,10 @@ class PubmedParser(Parser):
         super().__init__(seed, cache_dir)
         self._dtype_to_path = self.download_data()
         self.graph = PubmedGraph(dir_path=self._dtype_to_path['original'], cache_dir=self.cache_dir)
-    
-    def parse(self) -> None:    
+
+    def parse(self) -> None:
         self.graph.load()
-    
+
     def download_data(self) -> Dict[str, Path]:
         dtype_to_path = {}
         for dtype, url in PubmedParser.urls.items():
@@ -34,7 +34,7 @@ class PubmedParser(Parser):
             save_dir.mkdir(exist_ok=True, parents=True)
             zip_file_path = save_dir / 'PubMed.zip'
             dtype_to_path[dtype] = save_dir / ('PubMed' + ('_orig' if dtype == 'original' else ''))
-            
+
             if not dtype_to_path[dtype].exists():
                 file_id = url.split('/d/')[1].split('/')[0]
                 download_url = f'https://drive.google.com/uc?export=download&id={file_id}'
@@ -43,14 +43,14 @@ class PubmedParser(Parser):
                 with zipfile.ZipFile(zip_file_path, 'r') as zip_ref:
                     zip_ref.extractall(str(save_dir))
                 zip_file_path.unlink()
-        
+
         return dtype_to_path
 
 
 class PubmedGraph:
 
     def __init__(self, dir_path: Path, cache_dir: Path) -> None:
-        
+
         self.dir_path = dir_path
         self.cache_dir = cache_dir
 
@@ -58,23 +58,23 @@ class PubmedGraph:
         self.n_classes = 3
         self.class_id_to_label = {
             0: dict(
-                label='Experimental Diabetes', 
+                label='Experimental Diabetes',
                 description='Studies investigating diabetes in controlled experimental settings.'
-            ), 
+            ),
             1: dict(
-                label='Type 1 Diabetes', 
+                label='Type 1 Diabetes',
                 description=(
                     'An autoimmune disease where the body attacks and destroys insulin-producing cells '
                     'in the pancreas.'
                 )
-            ), 
+            ),
             2: dict(
-                label='Type 2 Diabetes', 
+                label='Type 2 Diabetes',
                 description=(
                     "A metabolic disorder characterized by high blood sugar levels due to the body's "
                     'inability to effectively use insulin.'
                 )
-            ), 
+            ),
         }
         self.n_nodes = 19_717
         self.n_features = 500
@@ -97,18 +97,18 @@ class PubmedGraph:
         self._load_nodes()
         self._load_edges()
         self._load_pyg_dataset()
-    
+
     def _load_pyg_dataset(self):
-        
+
         print('Loading PyG dataset...')
 
         self.dataset = Planetoid(self.cache_dir, 'PubMed')[0]
-        # Replace dataset matrices with the PubMed-Diabetes data, 
+        # Replace dataset matrices with the PubMed-Diabetes data,
         # for which we have the original PubMed IDs
         self.dataset.x = self.node_features
         self.dataset.y = self.node_labels
         self.dataset.edge_index = self.edge_index
-        
+
         # Split dataset nodes into train/val/test and update the train/val/test masks
         n_nodes = self.dataset.num_nodes
         node_ids = torch.randperm(n_nodes)
@@ -149,7 +149,7 @@ class PubmedGraph:
         self.n_nodes = len(self.articles)
 
     def _load_nodes(self):
-        
+
         print('Loading nodes...')
 
         self.node_features = torch.zeros((self.n_nodes, self.n_features), dtype=torch.float32)
@@ -179,7 +179,7 @@ class PubmedGraph:
                         self.node_feature_to_idx[fname] = k
                         k += 1
                     self.node_features[node_id, self.node_feature_to_idx[fname]] = fvalue
-        
+
     def _load_edges(self):
 
         print('Loading edges...')
@@ -201,12 +201,12 @@ class PubmedGraph:
                 ):
                     print(f'Ignoring edge ({head}, {tail}) due to either of the PubMed articles being discarded.')
                     continue
-                
+
                 self.adj_matrix[tail_node_id, head_node_id] = 1.0
                 self.adj_matrix[head_node_id, tail_node_id] = 1.0
                 if head != tail:
                     edges.append((head_node_id, tail_node_id))
                     edges.append((tail_node_id, head_node_id))
-        
+
         edges = torch.tensor(edges, dtype=torch.long)
         self.edge_index = torch.unique(edges, dim=0).T

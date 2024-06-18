@@ -1,17 +1,18 @@
-import os
 import json
-from pathlib import Path
+import os
 from abc import abstractmethod
 from functools import partial
-from typing import List, Dict, Union
+from pathlib import Path
+from typing import Dict, List, Union
 
-from tqdm import tqdm
-from vllm import LLM, SamplingParams
-from transformers import AutoTokenizer
 from jinja2 import Environment, FileSystemLoader
+from tqdm import tqdm
+from transformers import AutoTokenizer
+from vllm import LLM, SamplingParams
 
+from tag_llm.data.llm.engine import (LlmEngine, LlmOfflineEngineArgs,
+                                     LlmResponseModel)
 from tag_llm.data.parser import Article
-from tag_llm.data.llm.engine import LlmEngine, LlmOfflineEngineArgs, LlmResponseModel
 
 
 class LlmOfflineEngine(LlmEngine):
@@ -21,7 +22,7 @@ class LlmOfflineEngine(LlmEngine):
         # Update `huggingface_hub` default cache dir
         os.environ['HF_HOME'] = args.cache_dir
         self.tokenizer = AutoTokenizer.from_pretrained(
-            pretrained_model_name_or_path=args.model, 
+            pretrained_model_name_or_path=args.model,
             cache_dir=args.cache_dir
         )
         self.llm = LLM(model=args.model, **(args.engine_kwargs or {}))
@@ -33,7 +34,7 @@ class LlmOfflineEngine(LlmEngine):
         if self._system_prompt is None:
             self._system_prompt = self.get_system_prompt()
         return self._system_prompt
-    
+
     @abstractmethod
     def get_system_prompt(self) -> str:
         pass
@@ -43,20 +44,20 @@ class LlmOfflineEngine(LlmEngine):
         for article in articles:
             prompt = f'Title: {article.title}\nAbstract: {article.abstract}'
             messages = [
-                {"role": "system", "content": self.system_prompt}, 
+                {"role": "system", "content": self.system_prompt},
                 {"role": "user", "content": prompt},
             ]
             conversation.append(messages)
         return conversation
 
     def __call__(
-        self, 
-        articles: Union[Article, List[Article]], 
-        return_prompt: bool = False, 
+        self,
+        articles: Union[Article, List[Article]],
+        return_prompt: bool = False,
         strict: bool = False, # Whether to use strict json parsing
         max_retries: int = 3,
     ) -> Union[Dict[str, Union[str, Dict]], List[Dict[str, Union[str, Dict]]]]:
-        
+
         single_article = isinstance(articles, Article)
         if single_article:
             articles = [articles]
@@ -89,7 +90,7 @@ class LlmOfflineEngine(LlmEngine):
                         output = self.llm.generate(**kwargs)[0].outputs[0].text
                 output = json_output
             outputs[i] = dict(input=outputs[i].prompt, output=output)
-        
+
         return outputs[0] if single_article else outputs
 
     def get_responses_from_articles(self, articles: List[Article]) -> List[LlmResponseModel]:
@@ -101,7 +102,7 @@ class LlmOfflineEngine(LlmEngine):
                 if result and result['output']:
                     responses[idx] = LlmResponseModel(**result['output'])
         return responses
-    
+
     def load_system_prompt_from_template(self, **kwargs) -> str:
         file_loader = FileSystemLoader(Path(__file__, '..').resolve())
         env = Environment(loader=file_loader)

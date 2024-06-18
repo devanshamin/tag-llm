@@ -5,7 +5,6 @@ from shutil import copy2
 import gdown
 import requests
 
-
 DATASET_TO_URL = {
     'ogbn-arxiv': {
         'original': 'https://snap.stanford.edu/ogb/data/misc/ogbn_arxiv/titleabs.tsv.gz',
@@ -56,7 +55,7 @@ def download_and_unzip_file(dataset_name: str, output_dir=CACHE_DIR):
             copy2(url, file_path)
             dtype_to_local_path[dtype] = file_path
             continue
-        
+
         if not dir_path.exists():
             if 'drive.google.com' in url:
                 file_id = url.split('/d/')[1].split('/')[0]
@@ -68,11 +67,11 @@ def download_and_unzip_file(dataset_name: str, output_dir=CACHE_DIR):
 
             with zipfile.ZipFile(zip_file_path, 'r') as zip_ref:
                 zip_ref.extractall(str(save_dir))
-            
+
             zip_file_path.unlink()
-        
+
         dtype_to_local_path[dtype] = dir_path
-    
+
     return dtype_to_local_path
 
 

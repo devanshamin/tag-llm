@@ -1,18 +1,18 @@
 import copy
-from typing import Optional
 from dataclasses import is_dataclass
+from typing import Optional
 
-import torch
-import pandas as pd
 import numpy as np
-from jsonargparse import ArgumentParser, ActionConfigFile
+import pandas as pd
+import torch
+from jsonargparse import ActionConfigFile, ArgumentParser
 
 from tag_llm.config import DatasetName, FeatureType
-from tag_llm.data.lm_encoder import LmEncoderArgs
 from tag_llm.data.dataset import GraphDataset
+from tag_llm.data.llm.engine import LlmOfflineEngineArgs, LlmOnlineEngineArgs
+from tag_llm.data.lm_encoder import LmEncoderArgs
 from tag_llm.gnn_model import NodeClassifierArgs
-from tag_llm.trainer.gnn_trainer import GnnTrainerArgs, GnnTrainer
-from tag_llm.data.llm.engine import LlmOnlineEngineArgs, LlmOfflineEngineArgs
+from tag_llm.trainer.gnn_trainer import GnnTrainer, GnnTrainerArgs
 from tag_llm.utils import profile_execution
 
 
@@ -80,8 +80,8 @@ def _run(args):
             ftype_str = f'{ftype.name} ({ftype.value})'
             print(f'[Feature type: {ftype_str}] Test accuracy: {test_output.accuracy:.4f}')
             pred_rows.append(dict(Feature_type=ftype_str, Test_accuracy=test_output.accuracy))
-        
-        # Fuse predictions of features (TA, P, E) by taking an average  
+
+        # Fuse predictions of features (TA, P, E) by taking an average
         logits = torch.stack(logits).mean(dim=0)
         y_true = graph_dataset.dataset.y
         mask = graph_dataset.dataset.test_mask
@@ -111,7 +111,7 @@ def main():
     parser = get_parser()
     args = parser.parse_args()
     args = parser.instantiate_classes(args)
-    
+
     if args.seed_runs is None:
         _run(args)
     else:

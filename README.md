@@ -34,7 +34,7 @@ Two crucial components of this project were LLM inference and LM inference, each
 #### Challenges
 1. **Rate Limits and Cost:**
    - Using provider APIs (OpenAI, Anthropic, Groq, etc.) was straightforward but slow and expensive due to rate limits on requests per minute (RPM) and tokens per minute (TPM).
-   
+
 2. **Throughput with Naive Pipelines:**
    - Naive Hugging Face text generation pipeline was slow with open-weight models.
 
@@ -61,7 +61,7 @@ Two crucial components of this project were LLM inference and LM inference, each
 1. **Model Selection:**
    - Implemented support for models from both [transformers](https://github.com/huggingface/transformers) and [sentence-transformers](https://github.com/UKPLab/sentence-transformers).
    - Opted for <200 million parameter embedding models for faster encoding with decent performance, using the [Massive Text Embedding Benchmark (MTEB) Leaderboard](https://huggingface.co/spaces/mteb/leaderboard) as a guide.
-   
+
 2. **Caching:**
    - Utilized [safetensors](https://github.com/huggingface/safetensors) for safe storage and distribution of cached embeddings, improving the speed and efficiency of the process.
 

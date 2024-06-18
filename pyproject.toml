@@ -28,8 +28,21 @@ vllm = { version = "0.5.0.post1", optional = true }
 [tool.poetry.extras]
 llm_offline = ["vllm"]
 
+[tool.poetry.group.dev.dependencies]
+ruff = "^0.4.9"
+pre-commit = "^3.7.1"
+pytest = "^8.2.2"
+
 [tool.poetry.scripts]
 tag_llm_train = "tag_llm.train:main"
+
+[tool.ruff]
+line-length = 120
+
+[tool.ruff.lint]
+ignore = [
+    "E731",  # Do not assign a lambda expression, use a def
+]
 
 [build-system]
 requires = ["poetry-core"]

@@ -67,9 +67,7 @@ Two crucial components of this project were LLM inference and LM inference, each
 
 By addressing these bottlenecks with strategic choices in both online and offline LLM inference and efficient LM inference, the framework ensured enhanced performance and scalability.
 
-## Usage
-
-### Setup the environment
+## 🚀 Installation
 ```bash
 # (Recommended) Create a new conda environment.
 $ conda create -n tag_llm python=3.10 -y
@@ -86,7 +84,7 @@ $ poetry install
 $ poetry install --extras "llm_offline"
 ```
 
-### Training
+## 💻 Usage
 
 ```bash
 $ tag_llm_train --config=train_config.yaml
@@ -94,6 +92,19 @@ $ tag_llm_train --config=train_config.yaml
 $ tag_llm_train --help
 ```
 
-## License
+## 🎓 Citations
 
-LitGNN is released under the [Apache 2.0](https://www.apache.org/licenses/LICENSE-2.0) license. See the [LICENSE](LICENSE) file for details.
+If you have used my library for research purposes please quote it with the following reference:
+```
+@misc{tag-llm,
+   author = {Devansh Amin},
+   title = {LLM-Enhanced Text-Attributed Graph Representation Learning},
+   year = {2024},
+   url = {https://github.com/devanshamin/tag-llm},
+   note = {A Python library for training Graph Neural Networks (GNNs) on text-attributed graphs (TAGs) using large language model (LLM) textual features}
+}
+```
+
+## 📜 License
+
+`tag-llm` is released under the [Apache 2.0](https://www.apache.org/licenses/LICENSE-2.0) license. See the [LICENSE](LICENSE) file for details.

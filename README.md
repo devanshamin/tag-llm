@@ -71,7 +71,9 @@ By addressing these bottlenecks with strategic choices in both online and offlin
 
 ### Setup the environment
 ```bash
-$ conda create -n tape python=3.10 -y
+# (Recommended) Create a new conda environment.
+$ conda create -n tag_llm python=3.10 -y
+$ conda activate tag_llm
 
 # Replace the 'cu118' CUDA version according to your system
 $ pip install torch==2.3.0 --index-url https://download.pytorch.org/whl/cu118

@@ -75,7 +75,7 @@ Run time: 1 minute and 0.31 seconds
 
 In summary,
 
-| | Current Implementation | Author Implementation |
+| | tag-llm | Author Implementation - [TAPE](https://github.com/XiaoxinHe/TAPE) |
 | -- | -- | -- |
 | LLM  | `meta-llama/Meta-Llama-3-8B-Instruct` | `openai/gpt-3.5-turbo-0301` |
 | LM fine-tuning | ✖ | ✔ |

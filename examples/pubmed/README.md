@@ -2,48 +2,8 @@
 
 ## Training
 
-<details>
-<summary>Training config</summary>
-
-```yaml
-dataset: PUBMED
-feature_type: TAPE
-cache_dir: .cache
-seed: 42
-
-lm_encoder:
-  dataset_name: ${dataset}
-  feature_type: ${feature_type}
-  model_name_or_path: avsolatorio/GIST-Embedding-v0
-  model_library: sentence_transformer
-  sentence_transformer_encoder_args:
-    batch_size: 100
-    show_progress_bar: True
-    precision: float32
-  cache_dir: ${cache_dir}
-
-llm_online_engine:
-  cache_dir: ${cache_dir}
-  sampling_kwargs:
-    max_tokens: 500 # LLM completion tokens
-  model: huggingface/meta-llama/Meta-Llama-3-8B-Instruct
-
-gnn_model:
-  conv_layer: SAGEConv # `torch_geometric.nn.conv` layer
-  hidden_channels: 64
-  num_layers: 4
-  dropout: 0.1
-
-gnn_trainer:
-  epochs: 500
-  early_stopping_patience: 50
-  lr: 0.0031622776601683794 # 10**-2.5
-  weight_decay: 0.00001 # 10**-5
-```
-</details>
-
 ```bash
-$ tag_llm_train --config=train_config.yaml --seed_runs=4
+$ tag_llm_train --config=examples/pubmed/train_config.yaml --seed_runs=4
 ```
 
 - The [train_config.yaml](./train_config.yaml) utilizes the online LLM engine with the model [huggingface/meta-llama/Meta-Llama-3-8B-Instruct](https://huggingface.co/meta-llama/Meta-Llama-3-8B-Instruct).

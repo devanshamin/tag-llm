@@ -7,6 +7,7 @@ from tag_llm.config import DatasetName, FeatureType
 from tag_llm.data import parser
 from tag_llm.data.llm.engine import LlmOfflineEngineArgs, LlmOnlineEngineArgs
 from tag_llm.data.lm_encoder import LmEncoder, LmEncoderArgs
+from tag_llm.data.parser.base import Parser
 
 
 class GraphDataset:
@@ -36,16 +37,15 @@ class GraphDataset:
         lm_encoder_args.device = device
         self.lm_encoder = LmEncoder(args=lm_encoder_args)
 
-        self._parser = None
-        self._dataset = None
+        self._parser: Optional[Parser] = None
         self._topk = None
 
     @property
     def dataset(self) -> Data:
-        if self._dataset is None:
+        if self._parser is None:
             self.load_dataset()
             self.update_node_features()
-        return self._dataset
+        return self._parser.dataset
 
     @property
     def num_classes(self) -> int:
@@ -70,20 +70,17 @@ class GraphDataset:
 
         self._parser = cls(seed=self.seed, cache_dir=self.cache_dir)
         self._parser.parse()
-        self._dataset = self._parser.graph.dataset
 
     def update_node_features(self) -> None:
         """Update original node features with Language Model (LM) features."""
 
         ftype = self.feature_type
         print(f"Generating node features for feature type '{ftype.name} ({ftype.value})'...")
-        graph = self._parser.graph
-        articles = graph.articles
 
         if ftype == FeatureType.TITLE_ABSTRACT:
             sentences = [
                 f'Title: {article.title}\nAbstract: {article.abstract}'
-                for article in articles
+                for article in self._parser.articles
             ]
             features = self.lm_encoder(sentences)
             features = torch.stack(features)
@@ -97,11 +94,8 @@ class GraphDataset:
                 self.lm_encoder.save_cache()
             else:
                 # FeatureType.PREDICTION
-                label2id = {
-                    v['label'] if isinstance(v, dict) else v: k
-                    for k, v in graph.class_id_to_label.items()
-                }
-                features = torch.zeros((self._dataset.num_nodes, self.topk))
+                label2id = {label.name: label.label_idx for label in self._parser.class_labels}
+                features = torch.zeros((self.dataset.num_nodes, self.topk))
                 for i, resp in enumerate(responses):
                     # Convert the predicted labels (which are strings) to their corresponding integer IDs.
                     preds = [label2id[label] for label in resp.label]
@@ -119,12 +113,9 @@ class GraphDataset:
                     # If we had topk=3 and preds = [0], initializing the features with zeros would make it difficult to distinguish
                     # between "no prediction" and "prediction of class 0". To denote that the class is present, we increment the value by 1.
 
-        self._dataset.x = features
+        self.dataset.x = features
 
-    def _get_llm_responses(self):
-
-        graph = self._parser.graph
-
+    def _get_llm_responses(self) -> None:
         if self.llm_online_engine_args:
             from tag_llm.data.llm import online as engine
 
@@ -139,6 +130,6 @@ class GraphDataset:
         elif self.dataset_name == DatasetName.OGBN_ARXIV:
             cls = engine.LlmOgbnArxivResponses
 
-        llm = cls(args=args, class_id_to_label=graph.class_id_to_label)
-        responses = llm.get_responses_from_articles(articles=graph.articles)
+        llm = cls(args=args, class_labels=self._parser.class_labels)
+        responses = llm.get_responses_from_articles(articles=self._parser.articles)
         return responses

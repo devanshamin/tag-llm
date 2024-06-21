@@ -1,25 +1,25 @@
-from typing import Dict, List
+from typing import List
 
 from datasets import load_dataset
 
 from tag_llm.config import DatasetName
 from tag_llm.data.llm.engine import LlmOnlineEngineArgs, LlmResponseModel
 from tag_llm.data.llm.online.base import LlmOnlineEngine
-from tag_llm.data.parser import Article
+from tag_llm.data.parser import Article, ClassLabel
 
 
 class LlmPubmedResponses(LlmOnlineEngine):
 
-    def __init__(self, args: LlmOnlineEngineArgs, class_id_to_label: Dict) -> None:
+    def __init__(self, args: LlmOnlineEngineArgs, class_labels: List[ClassLabel]) -> None:
         super().__init__(args=args, dataset_name=DatasetName.PUBMED)
-        self.class_id_to_label = class_id_to_label
+        self.class_labels = class_labels
         self.system_message = (
             'Classify a scientific publication (containing title and abstract) '
             'into provided categories.'
         )
 
     def get_response_model(self) -> LlmResponseModel:
-        class_labels = {v['label']: v['label'] for v in self.class_id_to_label.values()}
+        class_labels = {label.name: label.name for label in self.class_labels}
         labels_list = list(class_labels.values())
         kwargs = dict(
             class_labels=class_labels,

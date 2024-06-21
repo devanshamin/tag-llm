@@ -1,22 +1,23 @@
-from typing import Dict
+from typing import List
 
 from tag_llm.config import DatasetName
 from tag_llm.data.llm.engine import LlmOnlineEngineArgs, LlmResponseModel
 from tag_llm.data.llm.online.base import LlmOnlineEngine
+from tag_llm.data.parser import ClassLabel
 
 
 class LlmOgbnArxivResponses(LlmOnlineEngine):
 
-    def __init__(self, args: LlmOnlineEngineArgs, class_id_to_label: Dict) -> None:
+    def __init__(self, args: LlmOnlineEngineArgs, class_labels: List[ClassLabel]) -> None:
         super().__init__(args=args, dataset_name=DatasetName.OGBN_ARXIV)
-        self.class_id_to_label = class_id_to_label
+        self.class_labels = class_labels
         self.system_message = 'Which arXiv CS sub-category does this paper belong to?'
 
     def get_response_model(self) -> LlmResponseModel:
         topk = 5
         class_labels = {
-            v['category'].replace('-', ' ').replace(',', ''): v['label']
-            for v in self.class_id_to_label.values()
+            label.kwargs['category'].replace('-', ' ').replace(',', ''): label.name
+            for label in self.class_labels
         }
         labels_list = list(class_labels.values())
         kwargs = dict(

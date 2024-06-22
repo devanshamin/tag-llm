@@ -1,4 +1,4 @@
-from typing import Optional, Union
+from typing import Dict, Optional, Union
 
 import torch
 from torch_geometric.data import Data
@@ -38,7 +38,8 @@ class GraphDataset:
         self.lm_encoder = LmEncoder(args=lm_encoder_args)
 
         self._parser: Optional[Parser] = None
-        self._topk = None
+        self._split_idx: Optional[Dict[str, torch.Tensor]] = None
+        self._topk: Optional[int] = None
 
     @property
     def dataset(self) -> Data:
@@ -50,6 +51,13 @@ class GraphDataset:
     @property
     def num_classes(self) -> int:
         return self._parser.graph.n_classes
+
+    @property
+    def split_idx(self) -> Dict[str, torch.Tensor]:
+        if self._split_idx is None:
+            _ = self.dataset
+            self._split_idx = self._parser.graph.split
+        return self._split_idx
 
     @property
     def topk(self) -> int:

@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, List, Optional
 
+import torch
 from torch_geometric.data import Data
 
 
@@ -57,7 +58,7 @@ class Graph(ABC):
         self.class_labels: Optional[List[ClassLabel]] = None
         self.articles: Optional[List[Article]] = None
         # Split containing train/val/test node ids
-        self.split: Optional[Dict] = None
+        self.split: Optional[Dict[str, torch.Tensor]] = None
 
     @abstractmethod
     def load(self) -> None:

@@ -134,14 +134,14 @@ class PubmedGraph(Graph):
         self.dataset.y = self._node_labels
         self.dataset.edge_index = self._edge_index
 
-        # Split dataset nodes into train/val/test and update the train/val/test masks
+        # Split dataset nodes into train/valid/test and update the train/valid/test masks
         n_nodes = self.dataset.num_nodes
         node_ids = torch.randperm(n_nodes)
         self.split = {}
-        for split_name in ('train', 'val', 'test'):
+        for split_name in ('train', 'valid', 'test'):
             if split_name == 'train':
                 subset = slice(0, int(n_nodes * 0.6))
-            elif split_name == 'val':
+            elif split_name == 'valid':
                 subset = slice(int(n_nodes * 0.6), int(n_nodes * 0.8))
             else:
                 subset = slice(int(n_nodes * 0.8), n_nodes)
@@ -151,4 +151,4 @@ class PubmedGraph(Graph):
             mask = torch.zeros(n_nodes, dtype=bool)
             mask[ids] = True
             setattr(self.dataset, f'{split_name}_mask', mask)
-            self.split[split_name] = ids.tolist()
+            self.split[split_name] = ids
